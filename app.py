@@ -13,7 +13,7 @@ from groq import Groq
 from gtts import gTTS
 
 # Configure le titre qui sera lu par le téléphone pour l'installer automatiquement sous le nom "echo"
-st.set_page_config(page_title="echo", page_icon="logo.png")
+st.set_page_config(page_title="echo", page_icon="logo.jpg")
 st.title("🗣️ echo")
 st.caption("Fais défiler ton cours, écoute et retiens en courant")
 
