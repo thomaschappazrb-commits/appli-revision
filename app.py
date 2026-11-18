@@ -1,13 +1,13 @@
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import io
 import os
 import re
-import subprocess
-import sys
 import tempfile
 import time
 import wave
+import edge_tts
 import streamlit as st
 import streamlit.components.v1 as components
 from pypdf import PdfReader
@@ -213,52 +213,46 @@ def _pcm_vers_wav(pcm_bytes: bytes, sample_rate: int = 24000) -> bytes:
     return buf.getvalue()
 
 
+async def _ecrire_edge_async(texte: str, voix: str, vitesse: str, chemin_mp3: str):
+    communicate = edge_tts.Communicate(texte, voix, rate=vitesse)
+    await communicate.save(chemin_mp3)
+
+
 def _segment_edge_tts(texte: str, voix: str, vitesse: str) -> bytes:
-    """Génère un segment MP3 via Edge TTS avec 1 tentative de secours."""
+    """Génère un segment MP3 directement via edge_tts en Python (sans sous-processus)."""
     texte_propre = nettoyer_texte_pour_oral(texte)
     if not texte_propre:
         return b""
 
     derniere_erreur = None
-    for _ in range(2):
-        tmp_txt = None
+    for tentative in range(3):
         tmp_mp3 = None
         try:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", encoding="utf-8", delete=False) as f_txt:
-                f_txt.write(texte_propre)
-                tmp_txt = f_txt.name
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f_mp3:
                 tmp_mp3 = f_mp3.name
 
-            res = subprocess.run(
-                [
-                    sys.executable, "-m", "edge_tts",
-                    "--voice", voix,
-                    f"--rate={vitesse}",
-                    "--file", tmp_txt,
-                    "--write-media", tmp_mp3,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=18,
+            asyncio.run(
+                asyncio.wait_for(
+                    _ecrire_edge_async(texte_propre, voix, vitesse, tmp_mp3),
+                    timeout=35.0,
+                )
             )
-            if res.returncode == 0 and os.path.exists(tmp_mp3) and os.path.getsize(tmp_mp3) > 0:
+
+            if os.path.exists(tmp_mp3) and os.path.getsize(tmp_mp3) > 0:
                 with open(tmp_mp3, "rb") as f:
                     return f.read()
-            derniere_erreur = (res.stderr or res.stdout or "réponse vide").strip()
+            derniere_erreur = "fichier MP3 vide"
         except Exception as e:
-            derniere_erreur = str(e)
+            derniere_erreur = str(e) or type(e).__name__
         finally:
-            for chemin in (tmp_txt, tmp_mp3):
-                if chemin and os.path.exists(chemin):
-                    try:
-                        os.remove(chemin)
-                    except OSError:
-                        pass
-        time.sleep(0.3)
+            if tmp_mp3 and os.path.exists(tmp_mp3):
+                try:
+                    os.remove(tmp_mp3)
+                except OSError:
+                    pass
+        time.sleep(0.6 * (tentative + 1))
 
     raise RuntimeError(f"Edge TTS indisponible : {derniere_erreur}")
-
 
 def _synthese_gemini_tts(script: str, gemini_key: str, est_duo: bool, vitesse: str) -> tuple[bytes, str]:
     """Synthèse vocale naturelle via Gemini TTS (mono ou multi-interlocuteurs)."""
