@@ -7,15 +7,34 @@ import sys
 import tempfile
 import time
 import streamlit as st
+import streamlit.components.v1 as components
 from pypdf import PdfReader
 from google import genai
 from groq import Groq
 from gtts import gTTS
 
-# Configure le titre qui sera lu par le téléphone pour l'installer automatiquement sous le nom "echo"
 st.set_page_config(page_title="echo", page_icon="logo.jpg")
-st.title("Echo")
-st.caption("Fais défiler ton cours, écoute et retiens en courant")
+
+LOGO_URL = "https://raw.githubusercontent.com/thomaschappazrb-commits/appli-revision/main/logo.jpg"
+components.html(
+    f"""
+    <script>
+    try {{
+        const doc = window.top.document;
+        doc.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
+        ["apple-touch-icon", "apple-touch-icon-precomposed", "icon"].forEach(rel => {{
+            const link = doc.createElement("link");
+            link.rel = rel;
+            link.href = "{LOGO_URL}";
+            doc.head.appendChild(link);
+        }});
+    }} catch (e) {{}}
+    </script>
+    """,
+    height=0,
+)
+
+st.title("🗣️ echo")
 
 def lire_secret(nom: str) -> str:
     """Lit une clé secrète côté serveur uniquement (jamais envoyée au navigateur)."""
