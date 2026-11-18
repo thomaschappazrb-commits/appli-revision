@@ -15,13 +15,14 @@ from gtts import gTTS
 st.set_page_config(page_title="Révision IA", page_icon="🎧")
 st.title("🎧 Mon Appli de Révision IA")
 
+
 def lire_secret(nom: str) -> str:
+    """Lit une clé secrète côté serveur uniquement (jamais envoyée au navigateur)."""
     try:
         return st.secrets[nom]
     except Exception:
         return ""
 
-CLE_GROQ_PAR_DEFAUT = lire_secret("GROQ_API_KEY")
 
 MODELES_GEMINI = [
     "gemini-3.8-flash-lite",
@@ -115,7 +116,6 @@ def generer_dialogue_mp3(script_brut: str, vitesse: str, barre_progression=None)
             if replique:
                 lignes_dialogue.append((role, replique))
 
-    # Si l'IA n'a pas respecté le format dialogue, on lit en solo proprement
     if len(lignes_dialogue) < 2:
         return texte_vers_mp3(script_brut, VOIX_PROF_DUO, vitesse)
 
@@ -286,13 +286,15 @@ with st.sidebar:
     choix_voix = st.selectbox("Voix solo (Cours & Quiz) :", list(VOIX_FRANCAISES.keys()))
     voix_id = VOIX_FRANCAISES[choix_voix]
 
-    with st.expander("🔑 Clés API (déjà configurée)"):
-        groq_key = nettoyer_cle(
-            st.text_input("Clé API Groq :", value=CLE_GROQ_PAR_DEFAUT, type="password")
-        )
-        gemini_key = nettoyer_cle(
-            st.text_input("Clé API Gemini (optionnelle) :", type="password")
-        )
+    # Lecture des clés uniquement côté serveur (invisible dans l'interface et dans le code navigateur)
+    groq_key = nettoyer_cle(lire_secret("GROQ_API_KEY"))
+    gemini_key = nettoyer_cle(lire_secret("GEMINI_API_KEY"))
+
+    # Champ affiché uniquement en développement local si aucun secret serveur n'est configuré
+    if not groq_key and not gemini_key:
+        with st.expander("🔑 Configuration locale"):
+            groq_key = nettoyer_cle(st.text_input("Clé API Groq :", type="password"))
+            gemini_key = nettoyer_cle(st.text_input("Clé API Gemini (optionnelle) :", type="password"))
 
     if st.session_state["a_revoir"]:
         st.divider()
@@ -320,7 +322,6 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
-    # Réinitialise proprement si l'utilisateur change de document
     if st.session_state.get("fichier_actuel") != uploaded_file.name:
         reinitialiser_cours()
         st.session_state["fichier_actuel"] = uploaded_file.name
@@ -361,7 +362,7 @@ if uploaded_file is not None:
 
             if st.button("🎧 Générer le podcast MP3"):
                 if not gemini_key and not groq_key:
-                    st.warning("Aucune clé API configurée à gauche.")
+                    st.warning("Aucune clé API configurée côté serveur.")
                 else:
                     with st.status("Fabrication de ton podcast...", expanded=True) as status:
                         try:
@@ -442,7 +443,7 @@ if uploaded_file is not None:
             if "plan_cours" not in st.session_state:
                 if st.button("🚀 Démarrer le cours guidé pas-à-pas"):
                     if not groq_key:
-                        st.warning("Clé Groq nécessaire pour le mode vocal.")
+                        st.warning("Aucune clé API Groq configurée côté serveur.")
                     else:
                         with st.status("Découpage intelligent du cours...", expanded=True) as status:
                             try:
@@ -497,12 +498,10 @@ if uploaded_file is not None:
                             icone = "✅" if i < idx else ("▶️" if i == idx else "⬜")
                             st.write(f"{icone} **Étape {i + 1} :** {etape}")
 
-                    # Explication audio de l'étape (ne relance pas l'autoplay si un feedback vient d'arriver)
                     a_un_feedback = "guide_feedback_audio" in st.session_state
                     st.info(st.session_state["guide_texte"])
                     st.audio(st.session_state["guide_audio"], format="audio/mp3", autoplay=not a_un_feedback)
 
-                    # Micro pour interagir à la voix
                     audio_guide = st.audio_input(
                         "🎤 Réponds à la question, pose une question, ou dis « plus simple » / « suivant » :",
                         key=f"guide_micro_{st.session_state['guide_tour_id']}"
@@ -544,7 +543,6 @@ if uploaded_file is not None:
                                 texte_lower = texte_dit.lower().strip()
                                 nb_mots = len(texte_lower.split())
 
-                                # Commandes vocales mains-libres
                                 if nb_mots <= 5 and any(cmd in texte_lower for cmd in ["suivant", "étape suivante", "passe"]):
                                     st.session_state["etape_index"] += 1
                                     if st.session_state["etape_index"] < len(plan):
@@ -622,7 +620,7 @@ if uploaded_file is not None:
 
             if st.button(label_bouton):
                 if not groq_key:
-                    st.warning("Aucune clé API Groq configurée.")
+                    st.warning("Aucune clé API Groq configurée côté serveur.")
                 else:
                     with st.status("Préparation de la question...", expanded=True) as status:
                         try:
