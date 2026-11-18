@@ -6,6 +6,7 @@ import os
 import re
 import tempfile
 import time
+import unicodedata
 import wave
 import edge_tts
 import streamlit as st
@@ -56,6 +57,7 @@ components.html(
     """,
     height=0,
 )
+
 st.markdown(
     """
     <style>
@@ -254,6 +256,7 @@ def _segment_edge_tts(texte: str, voix: str, vitesse: str) -> bytes:
 
     raise RuntimeError(f"Edge TTS indisponible : {derniere_erreur}")
 
+
 def _synthese_gemini_tts(script: str, gemini_key: str, est_duo: bool, vitesse: str) -> tuple[bytes, str]:
     """Synthèse vocale naturelle via Gemini TTS (mono ou multi-interlocuteurs)."""
     client = genai.Client(api_key=gemini_key)
@@ -289,7 +292,6 @@ def _synthese_gemini_tts(script: str, gemini_key: str, est_duo: bool, vitesse: s
             )
         )
 
-    # Découpe en blocs de ~2800 caractères pour éviter toute troncature sur les podcasts longs
     lignes = [l.strip() for l in script.splitlines() if l.strip()]
     blocs = []
     courant = []
@@ -339,29 +341,48 @@ def _synthese_gemini_tts(script: str, gemini_key: str, est_duo: bool, vitesse: s
     return _pcm_vers_wav(bytes(pcm_total)), f"Voix studio ({modele_retenu})"
 
 
-def synthese_audio_solo(texte: str, gemini_key: str, voix_edge: str, vitesse: str) -> tuple[bytes, str, str]:
+def synthese_audio_solo(
+    texte: str,
+    gemini_key: str,
+    voix_edge: str,
+    vitesse: str,
+    barre_progression=None,
+) -> tuple[bytes, str, str]:
     """Retourne (audio_bytes, mime_type, info_moteur)."""
     if gemini_key:
         try:
             wav_bytes, info = _synthese_gemini_tts(nettoyer_texte_pour_oral(texte), gemini_key, False, vitesse)
+            if barre_progression is not None:
+                barre_progression.progress(1.0)
             return wav_bytes, "audio/wav", info
         except Exception:
             pass
 
-    # Secours Edge TTS découpé par phrases avec micro-pauses naturelles
     phrases = [p.strip() for p in re.split(r"(?<=[.!?])\s+", nettoyer_texte_pour_oral(texte)) if p.strip()]
     if len(phrases) <= 1:
         mp3 = _segment_edge_tts(texte, voix_edge, vitesse)
+        if barre_progression is not None:
+            barre_progression.progress(1.0)
         return mp3, "audio/mp3", "Voix Edge TTS"
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        segments = list(pool.map(lambda p: _segment_edge_tts(p, voix_edge, vitesse), phrases))
+    total = len(phrases)
+    segments = [b""] * total
+
+    def tache_phrase(idx_p):
+        idx, p = idx_p
+        return idx, _segment_edge_tts(p, voix_edge, vitesse)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        for done, (idx, seg) in enumerate(pool.map(tache_phrase, enumerate(phrases)), start=1):
+            segments[idx] = seg
+            if barre_progression is not None:
+                barre_progression.progress(done / total)
 
     pause = _silence_mp3(260)
     assemblage = bytearray()
     for i, seg in enumerate(segments):
         assemblage.extend(seg)
-        if i < len(segments) - 1:
+        if i < total - 1:
             assemblage.extend(pause)
     return bytes(assemblage), "audio/mp3", "Voix Edge TTS (rythme respiré)"
 
@@ -384,9 +405,8 @@ def synthese_audio_dialogue(
                 lignes_dialogue.append((role, replique))
 
     if len(lignes_dialogue) < 2:
-        return synthese_audio_solo(script_brut, gemini_key, VOIX_PROF_EDGE, vitesse)
+        return synthese_audio_solo(script_brut, gemini_key, VOIX_PROF_EDGE, vitesse, barre_progression)
 
-    # 1. Tentative Gemini Multi-Speaker TTS (rendu conversationnel natif)
     if gemini_key:
         try:
             script_propre = "\n".join(f"{r}: {txt}" for r, txt in lignes_dialogue)
@@ -399,7 +419,6 @@ def synthese_audio_dialogue(
         except Exception:
             pass
 
-    # 2. Secours Edge TTS parallélisé avec silences de 480 ms entre interlocuteurs
     total = len(lignes_dialogue)
     segments = [b""] * total
 
@@ -408,7 +427,7 @@ def synthese_audio_dialogue(
         voix = VOIX_PROF_EDGE if role == "PROF" else VOIX_ELEVE_EDGE
         return idx, _segment_edge_tts(replique, voix, vitesse)
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=2) as pool:
         for done, (idx, seg) in enumerate(pool.map(tache_segment, enumerate(lignes_dialogue)), start=1):
             segments[idx] = seg
             if barre_progression is not None:
@@ -425,7 +444,7 @@ def synthese_audio_dialogue(
 
 
 def generer_texte_ia(prompt: str, gemini_key: str, groq_key: str, temperature: float = 0.45) -> tuple[str, str]:
-    """Appelle Gemini en priorité (contexte long, vulgarisation fine), puis Groq en secours."""
+    """Appelle Gemini en priorité, puis Groq en secours."""
     erreurs = []
 
     if gemini_key:
@@ -448,7 +467,7 @@ def generer_texte_ia(prompt: str, gemini_key: str, groq_key: str, temperature: f
 
     if groq_key:
         try:
-            client_groq = Groq(api_key=groq_key, timeout=22.0)
+            client_groq = Groq(api_key=groq_key, timeout=28.0)
             modeles_groq = [
                 m.id for m in client_groq.models.list().data
                 if getattr(m, "active", True)
@@ -474,19 +493,19 @@ def generer_texte_ia(prompt: str, gemini_key: str, groq_key: str, temperature: f
 
 
 def construire_carte_cours(texte_complet: str, gemini_key: str, groq_key: str) -> str:
-    """Analyse l'intégralité du PDF par blocs pour ne jamais perdre la fin du cours."""
+    """Analyse l'intégralité des documents par blocs (jusqu'à ~160 000 caractères)."""
     texte_propre = re.sub(r"\n{3,}", "\n\n", texte_complet).strip()
     if len(texte_propre) <= 18000:
         return texte_propre
 
     taille_bloc = 16000
-    blocs = [texte_propre[i:i + taille_bloc] for i in range(0, len(texte_propre), taille_bloc)][:6]
+    blocs = [texte_propre[i:i + taille_bloc] for i in range(0, len(texte_propre), taille_bloc)][:10]
 
     def analyser_bloc(idx_bloc):
         idx, contenu = idx_bloc
         prompt = (
-            f"Tu extrais la matière pédagogique essentielle de la partie {idx + 1}/{len(blocs)} d'un cours universitaire.\n"
-            f"Liste de manière dense et précise :\n"
+            f"Tu extrais la matière pédagogique essentielle de la partie {idx + 1}/{len(blocs)} d'un ensemble de documents de cours.\n"
+            f"Conserve les repères '=== DOCUMENT : ... ===' s'ils apparaissent et liste de manière dense et précise :\n"
             f"1. Les concepts et définitions clés\n"
             f"2. Les mécanismes physiques/logiques et relations de cause à effet\n"
             f"3. Les formules ou lois importantes traduites en mots (ex: proportionnel à, inverse du carré...)\n"
@@ -495,12 +514,145 @@ def construire_carte_cours(texte_complet: str, gemini_key: str, groq_key: str) -
             f"Extrait du cours :\n{contenu}"
         )
         synthese, _ = generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.2)
-        return f"--- PARTIE {idx + 1} DU COURS ---\n{synthese.strip()}"
+        return f"--- PARTIE {idx + 1} ---\n{synthese.strip()}"
 
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    with ThreadPoolExecutor(max_workers=2) as pool:
         parties = list(pool.map(analyser_bloc, enumerate(blocs)))
 
     return "\n\n".join(parties)
+
+
+def generer_titre_episode(matiere: str, noms_fichiers: list[str], gemini_key: str, groq_key: str) -> tuple[str, str]:
+    """Génère un titre éditorial court et un nom de fichier propre sans accents."""
+    prompt = (
+        f"Donne un titre court, clair et précis (3 à 6 mots maximum) qui résume le thème principal de ces documents de cours.\n"
+        f"Documents : {', '.join(noms_fichiers)}\n"
+        f"Contenu :\n{matiere[:8000]}\n\n"
+        f"Réponds UNIQUEMENT par le titre, sans guillemets, sans point final, sans préfixe."
+    )
+    try:
+        titre_brut, _ = generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.3)
+        titre_propre = re.sub(r"[\"'«»\n\r]", "", titre_brut).strip(" .:-")
+        titre_propre = titre_propre[:70] if titre_propre else "Episode de revision"
+    except Exception:
+        titre_propre = "Episode de revision"
+
+    sans_accents = unicodedata.normalize("NFKD", titre_propre).encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", sans_accents.lower()).strip("_")
+    slug = slug[:48] or "revision"
+    return titre_propre, f"echo_{slug}"
+
+
+def generer_script_podcast_long(
+    matiere_cours: str,
+    duree_minutes: int,
+    est_duo: bool,
+    gemini_key: str,
+    groq_key: str,
+    zone_statut=None,
+) -> tuple[str, str]:
+    """Génère un script calibré sur la durée choisie (en plusieurs actes au-delà de 8 min)."""
+    mots_cibles = duree_minutes * 140
+    nb_actes = max(1, round(duree_minutes / 6))
+
+    regles_base = (
+        "RÈGLES PÉDAGOGIQUES STRICTES :\n"
+        "- INTERDICTION des formules creuses ('Bonjour', 'Bienvenue', 'C'est une super question !', 'Tout à fait !').\n"
+        "- Explique les mécanismes en profondeur avec des images mentales concrètes.\n"
+        "- Traduis toute formule ou loi mathématique en français parlé clair (jamais de symboles bruts).\n"
+        "- Aucun astérisque, aucune liste à puces, aucun titre ni markdown : uniquement du texte destiné à être lu à voix haute."
+    )
+    format_voix = (
+        "FORMAT STRICT : chaque ligne commence exactement par 'PROF:' ou 'ELEVE:' suivi du texte parlé.\n"
+        "PROF est un expert limpide et précis ; ELEVE est une étudiante vive qui pose des questions pointues, "
+        "reformule avec ses mots et fait les liens entre les notions."
+        if est_duo
+        else "FORMAT STRICT : paragraphes fluides et naturels pour un seul narrateur."
+    )
+
+    # Cas court (5 à 8 min) : un seul appel suffit
+    if nb_actes == 1:
+        if zone_statut:
+            zone_statut.write(f"1/2 — Écriture du script (~{duree_minutes} min, ~{mots_cibles} mots)...")
+        prompt = (
+            f"Écris un script de podcast pédagogique en français d'environ {mots_cibles} mots pour un étudiant qui court sans feuille.\n"
+            f"Attaque dès la 1re phrase par le problème concret que ce cours résout, déroule les mécanismes clés puis termine par 2 pièges classiques.\n"
+            f"{regles_base}\n{format_voix}\n\n"
+            f"Matière complète des documents :\n{matiere_cours[:36000]}"
+        )
+        return generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.5)
+
+    # Cas long (9 à 30 min) : planification + rédaction acte par acte pour garantir la durée et le détail
+    if zone_statut:
+        zone_statut.write(f"1/{nb_actes + 2} — Découpage de l'épisode en {nb_actes} actes détaillés...")
+
+    prompt_plan = (
+        f"Tu prépares un épisode de podcast approfondi de {duree_minutes} minutes couvrant L'INTÉGRALITÉ des documents fournis.\n"
+        f"Découpe l'épisode en exactement {nb_actes} actes chronologiques et complémentaires, "
+        f"en répartissant équitablement toutes les notions du début à la fin des documents.\n"
+        f"FORMAT STRICT : uniquement {nb_actes} lignes numérotées (1. ... à {nb_actes}. ...), détaillant les notions précises de chaque acte.\n\n"
+        f"Matière complète :\n{matiere_cours[:40000]}"
+    )
+    plan_brut, modele_txt = generer_texte_ia(prompt_plan, gemini_key, groq_key, temperature=0.3)
+    actes = [
+        re.sub(r"^\s*[\d\-•*]+[\.\)\-:]?\s*", "", l).strip()
+        for l in plan_brut.splitlines()
+        if len(re.sub(r"^\s*[\d\-•*]+[\.\)\-:]?\s*", "", l).strip()) > 5
+    ][:nb_actes]
+    while len(actes) < nb_actes:
+        actes.append(f"Approfondissement et synthèse — partie {len(actes) + 1}")
+
+    mots_par_acte = max(650, mots_cibles // nb_actes)
+    repliques_par_acte = max(12, mots_par_acte // 55)
+    morceaux_script = []
+    derniere_transition = ""
+
+    for i, sujet_acte in enumerate(actes):
+        if zone_statut:
+            zone_statut.write(f"{i + 2}/{nb_actes + 2} — Rédaction de l'acte {i + 1}/{nb_actes} : {sujet_acte[:60]}...")
+
+        if i == 0:
+            consigne_position = (
+                "C'est le DÉBUT de l'épisode : attaque dès la première phrase par le problème concret résolu par ce cours, "
+                "annonce rapidement le fil conducteur, puis développe à fond cet Acte 1. Ne conclus surtout pas l'épisode à la fin."
+            )
+        elif i == nb_actes - 1:
+            consigne_position = (
+                f"C'est le DERNIER acte ({i + 1}/{nb_actes}). Enchaîne directement dans la continuité de la fin de l'acte précédent "
+                f"(SANS dire bonjour ni réintroduire le podcast), développe à fond cet acte, puis termine par les pièges d'examen et une conclusion brève.\n"
+                f"Dernières lignes de l'acte précédent pour enchaîner naturellement :\n{derniere_transition}"
+            )
+        else:
+            consigne_position = (
+                f"C'est l'acte intermédiaire {i + 1}/{nb_actes}. Enchaîne directement dans la continuité de la fin de l'acte précédent "
+                f"(SANS dire bonjour ni réintroduire le podcast, et SANS conclure l'épisode), en approfondissant chaque détail technique de cet acte.\n"
+                f"Dernières lignes de l'acte précédent pour enchaîner naturellement :\n{derniere_transition}"
+            )
+
+        cible_acte = (
+            f"environ {mots_par_acte} mots (soit {repliques_par_acte} à {repliques_par_acte + 4} répliques fouillées de 3 à 4 phrases chacune)"
+            if est_duo
+            else f"environ {mots_par_acte} mots rédigés en paragraphes riches et détaillés"
+        )
+
+        prompt_acte = (
+            f"Tu rédiges l'Acte {i + 1} sur {nb_actes} d'un podcast universitaire approfondi de {duree_minutes} minutes.\n"
+            f"Plan complet de l'épisode :\n" + "\n".join(f"{k + 1}. {a}" for k, a in enumerate(actes)) + "\n\n"
+            f"SUJET EXCLUSIF DE CET ACTE {i + 1} : {sujet_acte}\n"
+            f"{consigne_position}\n"
+            f"Longueur impérative pour cet acte : {cible_acte}. Ne résume pas superficiellement : explique les mécanismes, "
+            f"les relations entre grandeurs, les cas concrets et les subtilités.\n"
+            f"{regles_base}\n{format_voix}\n\n"
+            f"Matière complète des documents :\n{matiere_cours[:40000]}"
+        )
+
+        texte_acte, modele_txt = generer_texte_ia(prompt_acte, gemini_key, groq_key, temperature=0.5)
+        texte_acte = texte_acte.strip()
+        morceaux_script.append(texte_acte)
+        lignes_acte = [l for l in texte_acte.splitlines() if l.strip()]
+        derniere_transition = "\n".join(lignes_acte[-3:])
+
+    return "\n\n".join(morceaux_script), modele_txt
 
 
 def transcrire_audio_groq(audio_bytes: bytes, groq_key: str) -> str:
@@ -554,7 +706,7 @@ def generer_etape_guidee(
             f"- Termine par UNE micro-question courte (réponse en 5 secondes) pour vérifier la compréhension."
         )
 
-    prompt = f"{consigne}\n\nMatière du cours :\n{matiere_cours[:24000]}"
+    prompt = f"{consigne}\n\nMatière du cours :\n{matiere_cours[:28000]}"
     explication, _ = generer_texte_ia(prompt, gemini_key, groq_key)
     audio_etape, mime_etape, _ = synthese_audio_solo(explication, gemini_key, voix_edge, vitesse_voix)
 
@@ -569,7 +721,9 @@ def generer_etape_guidee(
 
 def reinitialiser_cours():
     cles = [
-        "carte_cours", "nb_pages_pdf", "podcast_audio", "podcast_mime", "podcast_script", "podcast_info",
+        "carte_cours", "nb_pages_pdf", "noms_fichiers",
+        "podcast_audio", "podcast_mime", "podcast_script", "podcast_info",
+        "podcast_titre", "podcast_filename",
         "plan_cours", "etape_index", "guide_texte", "guide_audio", "guide_mime",
         "guide_feedback_texte", "guide_feedback_audio", "guide_feedback_mime", "guide_transcription",
         "question_actuelle", "question_audio", "question_mime",
@@ -605,7 +759,7 @@ with col_hero:
     st.markdown(
         f"""
         <div class="echo-hero">
-            <img src="{LOGO_URL}" alt="echo">
+            <img src="{LOGO_URL}" alt="Echo">
             <div>
                 <p class="echo-title">Echo</p>
                 <p class="echo-sub">Tes cours dans les oreilles, taillés pour courir</p>
@@ -647,37 +801,58 @@ if st.session_state["a_revoir"]:
             st.rerun()
 
 # ==========================================
-# CHARGEMENT DU COURS (100 % DU PDF)
+# CHARGEMENT MULTI-DOCUMENTS (PDF OU TXT)
 # ==========================================
-uploaded_file = st.file_uploader("Dépose ton cours (PDF ou TXT)", type=["pdf", "txt"])
+uploaded_files = st.file_uploader(
+    "Dépose un ou plusieurs cours (PDF ou TXT)",
+    type=["pdf", "txt"],
+    accept_multiple_files=True,
+)
 
-if uploaded_file is not None:
-    if st.session_state.get("fichier_actuel") != uploaded_file.name:
+if uploaded_files:
+    signature_fichiers = tuple((f.name, f.size) for f in uploaded_files)
+    if st.session_state.get("fichiers_actuels") != signature_fichiers:
         reinitialiser_cours()
-        st.session_state["fichier_actuel"] = uploaded_file.name
+        st.session_state["fichiers_actuels"] = signature_fichiers
 
-    if uploaded_file.name.endswith(".pdf"):
-        reader = PdfReader(uploaded_file)
-        nb_pages = len(reader.pages)
-        texte_brut = "\n".join(page.extract_text() or "" for page in reader.pages)
-    else:
-        nb_pages = 1
-        texte_brut = uploaded_file.read().decode("utf-8", errors="ignore")
+    morceaux_docs = []
+    nb_pages = 0
+    noms_fichiers = []
+    for f in uploaded_files:
+        noms_fichiers.append(f.name)
+        if f.name.lower().endswith(".pdf"):
+            reader = PdfReader(f)
+            nb_pages += len(reader.pages)
+            contenu = "\n".join(page.extract_text() or "" for page in reader.pages)
+        else:
+            nb_pages += 1
+            contenu = f.read().decode("utf-8", errors="ignore")
+        if contenu.strip():
+            morceaux_docs.append(f"=== DOCUMENT : {f.name} ===\n{contenu.strip()}")
+
+    texte_brut = "\n\n".join(morceaux_docs)
 
     if not texte_brut.strip():
-        st.warning("Aucun texte détecté dans ce fichier.")
+        st.warning("Aucun texte détecté dans les fichiers déposés.")
     else:
         if "carte_cours" not in st.session_state:
-            with st.status(f"Analyse complète de {uploaded_file.name} ({nb_pages} page(s))...", expanded=False) as st_load:
+            label_analyse = (
+                f"Analyse complète de {len(noms_fichiers)} document(s) ({nb_pages} page(s))..."
+            )
+            with st.status(label_analyse, expanded=False) as st_load:
                 try:
                     st.session_state["carte_cours"] = construire_carte_cours(texte_brut, gemini_key, groq_key)
                     st.session_state["nb_pages_pdf"] = nb_pages
-                    st_load.update(label=f"Cours prêt ({nb_pages} page(s) analysées en entier)", state="complete")
+                    st.session_state["noms_fichiers"] = noms_fichiers
+                    st_load.update(
+                        label=f"{len(noms_fichiers)} document(s) prêt(s) ({nb_pages} page(s) analysées)",
+                        state="complete",
+                    )
                 except Exception as e:
                     st_load.update(label="Erreur d'analyse", state="error")
                     st.error(str(e))
 
-        matiere_cours = st.session_state.get("carte_cours", texte_brut[:24000])
+        matiere_cours = st.session_state.get("carte_cours", texte_brut[:32000])
 
         tab_podcast, tab_guide, tab_quiz = st.tabs([
             "🎙️ Podcast",
@@ -686,7 +861,7 @@ if uploaded_file is not None:
         ])
 
         # ==========================================
-        # MODE 1 : PODCAST HORS-LIGNE HAUTE QUALITÉ
+        # MODE 1 : PODCAST LONG & NOMMÉ PAR IA
         # ==========================================
         with tab_podcast:
             st.markdown(
@@ -694,7 +869,7 @@ if uploaded_file is not None:
                 <div class="echo-card">
                     <span class="echo-badge">ÉPISODE SUR MESURE</span>
                     <div style="color:#CBD5E1;font-size:0.9rem;">
-                        Couvre l'intégralité du document : intuition concrète, mécanismes clés, traduction orale des formules et pièges classiques.
+                        Synthétise l'ensemble de tes documents déposés. Au-delà de 8 min, l'épisode est structuré en plusieurs actes détaillés pour tout couvrir sans raccourci.
                     </div>
                 </div>
                 """,
@@ -707,82 +882,61 @@ if uploaded_file is not None:
                     ["Dialogue (2 voix)", "Monologue (1 voix)"],
                     default="Dialogue (2 voix)",
                 ) or "Dialogue (2 voix)"
-                duree_podcast = st.segmented_control(
-                    "Durée :",
-                    ["⚡ Flash (5 min)", "🎧 Approfondi (12 min)"],
-                    default="⚡ Flash (5 min)",
-                ) or "⚡ Flash (5 min)"
             else:
                 format_audio = st.radio("Format :", ["Dialogue (2 voix)", "Monologue (1 voix)"], horizontal=True)
-                duree_podcast = st.radio("Durée :", ["⚡ Flash (5 min)", "🎧 Approfondi (12 min)"], horizontal=True)
+
+            duree_cible = st.slider(
+                "Durée cible du podcast (minutes) :",
+                min_value=5,
+                max_value=30,
+                value=12,
+                step=1,
+            )
 
             if st.button("🎧 Générer l'épisode audio", type="primary"):
                 if not gemini_key and not groq_key:
                     st.warning("Configure une clé API côté serveur.")
                 else:
-                    with st.status("Création de ton épisode...", expanded=True) as status:
+                    with st.status(f"Fabrication de ton épisode (~{duree_cible} min)...", expanded=True) as status:
                         try:
                             est_duo = "2 voix" in format_audio
-                            est_long = "Approfondi" in duree_podcast
+                            nb_actes = max(1, round(duree_cible / 6))
 
-                            regles_pedago = (
-                                "RÈGLES PÉDAGOGIQUES STRICTES :\n"
-                                "- INTERDICTION de commencer par 'Bonjour', 'Bienvenue dans ce podcast' ou toute formule creuse. "
-                                "Attaque dès la 1re phrase par le problème concret que ce cours résout.\n"
-                                "- INTERDICTION des répliques vides type 'C'est une super question !' ou 'Tout à fait !'.\n"
-                                "- Structure l'épisode en 4 temps : 1) Vue d'ensemble et utilité concrète, 2) Mécanismes fondamentaux pas à pas, "
-                                "3) Explication intuitive des lois/formules à l'oral (jamais de symboles bruts), 4) Les 2 pièges classiques d'examen.\n"
-                                "- Aucun astérisque, aucune liste à puces, aucun markdown : uniquement du français oral naturel."
+                            script_audio, modele_txt = generer_script_podcast_long(
+                                matiere_cours,
+                                duree_cible,
+                                est_duo,
+                                gemini_key,
+                                groq_key,
+                                zone_statut=status,
                             )
 
-                            if est_duo:
-                                cible_longueur = (
-                                    "26 à 30 répliques riches (3 à 4 phrases par réplique, environ 1500 mots) couvrant TOUTES les parties du cours."
-                                    if est_long
-                                    else "14 à 16 répliques percutantes (2 à 3 phrases par réplique, environ 700 mots) couvrant l'essentiel de tout le cours."
-                                )
-                                prompt = (
-                                    f"Écris un script de podcast scientifique en français à 2 voix pour un étudiant de niveau ingénieur/master qui court sans feuille.\n"
-                                    f"Personnages :\n"
-                                    f"- PROF : expert calme, limpide, qui donne des images mentales précises.\n"
-                                    f"- ELEVE : étudiante vive qui pose les vraies questions de compréhension ('Attend, ça veut dire que si X double, Y est divisé par quatre ?'), "
-                                    f"reformule avec ses mots et fait le lien entre les notions.\n\n"
-                                    f"{regles_pedago}\n"
-                                    f"Longueur cible : {cible_longueur}\n"
-                                    f"FORMAT STRICT : chaque ligne commence exactement par 'PROF:' ou 'ELEVE:' suivi du texte parlé.\n\n"
-                                    f"Matière complète du cours :\n{matiere_cours[:32000]}"
-                                )
-                            else:
-                                cible_longueur = (
-                                    "environ 1400 mots structurés en paragraphes fluides avec transitions naturelles, couvrant tout le cours."
-                                    if est_long
-                                    else "environ 650 mots percutants et fluides, couvrant tout le cours."
-                                )
-                                prompt = (
-                                    f"Écris un monologue de podcast pédagogique en français pour un étudiant qui court sans schéma.\n"
-                                    f"{regles_pedago}\n"
-                                    f"Longueur cible : {cible_longueur}\n\n"
-                                    f"Matière complète du cours :\n{matiere_cours[:32000]}"
-                                )
+                            status.write(f"{nb_actes + 1}/{nb_actes + 2} — Génération du titre éditorial...")
+                            titre_ep, base_filename = generer_titre_episode(
+                                matiere_cours,
+                                st.session_state.get("noms_fichiers", noms_fichiers),
+                                gemini_key,
+                                groq_key,
+                            )
 
-                            st.write("1/2 — Écriture du script sur l'ensemble du cours...")
-                            script_audio, modele_txt = generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.5)
-
-                            st.write("2/2 — Production audio...")
+                            status.write(f"{nb_actes + 2}/{nb_actes + 2} — Enregistrement vocal en cours...")
+                            barre = st.progress(0.0)
                             if est_duo:
-                                barre = st.progress(0.0)
                                 audio_bytes, mime_audio, info_voix = synthese_audio_dialogue(
                                     script_audio, gemini_key, vitesse_voix, barre
                                 )
                             else:
                                 audio_bytes, mime_audio, info_voix = synthese_audio_solo(
-                                    script_audio, gemini_key, voix_edge, vitesse_voix
+                                    script_audio, gemini_key, voix_edge, vitesse_voix, barre
                                 )
 
+                            nb_mots_reels = len(script_audio.split())
                             st.session_state["podcast_audio"] = audio_bytes
                             st.session_state["podcast_mime"] = mime_audio
                             st.session_state["podcast_script"] = script_audio
-                            st.session_state["podcast_info"] = f"{modele_txt} • {info_voix}"
+                            st.session_state["podcast_titre"] = titre_ep
+                            st.session_state["podcast_filename"] = base_filename
+                            st.session_state["podcast_info"] = f"{modele_txt} • {info_voix} • ~{nb_mots_reels} mots"
                             status.update(label="Épisode prêt !", state="complete", expanded=False)
                         except Exception as e:
                             status.update(label="Erreur", state="error")
@@ -790,15 +944,27 @@ if uploaded_file is not None:
 
             if "podcast_audio" in st.session_state:
                 ext = "wav" if "wav" in st.session_state["podcast_mime"] else "mp3"
-                st.caption(f"✨ {st.session_state['podcast_info']}")
+                nom_fichier_dl = f"{st.session_state.get('podcast_filename', 'echo_podcast')}.{ext}"
+                titre_affiche = st.session_state.get("podcast_titre", "Épisode de révision")
+
+                st.markdown(
+                    f"""
+                    <div class="echo-card">
+                        <span class="echo-badge">PRÊT À ÉCOUTER</span>
+                        <div style="font-size:1.05rem;font-weight:700;color:#F8FAFC;">{titre_affiche}</div>
+                        <div style="font-size:0.8rem;color:#94A3B8;margin-top:3px;">{st.session_state['podcast_info']}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
                 st.audio(st.session_state["podcast_audio"], format=st.session_state["podcast_mime"])
                 st.download_button(
-                    label=f"⬇️ Sauvegarder hors-ligne (.{ext})",
+                    label=f"⬇️ Sauvegarder « {nom_fichier_dl} »",
                     data=st.session_state["podcast_audio"],
-                    file_name=f"echo_podcast.{ext}",
+                    file_name=nom_fichier_dl,
                     mime=st.session_state["podcast_mime"],
                 )
-                with st.expander("📄 Lire le script de l'épisode"):
+                with st.expander("📄 Lire le script complet de l'épisode"):
                     st.write(st.session_state["podcast_script"])
 
         # ==========================================
@@ -811,7 +977,7 @@ if uploaded_file is not None:
                     <div class="echo-card">
                         <span class="echo-badge">PROGRESSION ACTIVE</span>
                         <div style="color:#CBD5E1;font-size:0.9rem;">
-                            Le cours est découpé en 5 briques digestes. À chaque étape, réponds au micro (envoi automatique dès que tu coupes) ou dis simplement <b>« plus simple »</b> ou <b>« suivant »</b>.
+                            Les documents sont découpés en 5 briques digestes. À chaque étape, réponds au micro (envoi automatique dès que tu coupes) ou dis simplement <b>« plus simple »</b> ou <b>« suivant »</b>.
                         </div>
                     </div>
                     """,
@@ -824,11 +990,11 @@ if uploaded_file is not None:
                         with st.status("Structuration du parcours...", expanded=True) as status:
                             try:
                                 prompt_plan = (
-                                    f"Découpe l'intégralité de ce cours en 5 mini-étapes progressives pour un enseignement oral sans support visuel.\n"
-                                    f"Étape 1 : vue d'ensemble et problème résolu par le cours.\n"
-                                    f"Étapes 2 à 5 : les concepts majeurs du début à la fin du document, du plus intuitif au plus technique.\n"
+                                    f"Découpe l'intégralité de ces documents en 5 mini-étapes progressives pour un enseignement oral sans support visuel.\n"
+                                    f"Étape 1 : vue d'ensemble et problème résolu.\n"
+                                    f"Étapes 2 à 5 : les concepts majeurs du début à la fin des documents, du plus intuitif au plus technique.\n"
                                     f"FORMAT STRICT : uniquement 5 lignes numérotées (1. ... à 5. ...), sans texte autour.\n\n"
-                                    f"Matière :\n{matiere_cours[:28000]}"
+                                    f"Matière :\n{matiere_cours[:32000]}"
                                 )
                                 plan_brut, _ = generer_texte_ia(prompt_plan, gemini_key, groq_key, temperature=0.3)
                                 etapes = [
@@ -884,7 +1050,6 @@ if uploaded_file is not None:
                         key=f"guide_micro_{st.session_state['guide_tour_id']}",
                     )
 
-                    # Envoi automatique dès qu'un nouvel enregistrement est terminé
                     if audio_guide is not None:
                         raw_bytes = audio_guide.getvalue()
                         h = hashlib.md5(raw_bytes).hexdigest()
@@ -916,7 +1081,7 @@ if uploaded_file is not None:
                                         f"Tu dialogues à l'oral avec un étudiant sur l'étape « {plan[idx]} ».\n"
                                         f"Ton explication et ta question : {st.session_state['guide_texte']}\n"
                                         f"Ce que l'étudiant vient de dire : {texte_dit}\n"
-                                        f"Cours : {matiere_cours[:20000]}\n\n"
+                                        f"Cours : {matiere_cours[:24000]}\n\n"
                                         f"Réponds en 3 phrases courtes et naturelles (zéro puce, zéro symbole brut) : "
                                         f"valide ce qui est juste, corrige ou éclaire avec une image simple si besoin, "
                                         f"et dis-lui s'il peut passer à la suite."
@@ -1013,15 +1178,15 @@ if uploaded_file is not None:
                                 prompt_q = (
                                     f"L'étudiant avait raté cette notion il y a 10 minutes : « {notion_ratee['question']} ».\n"
                                     f"Repose UNE SEULE question courte (2 phrases max) sur ce même concept, reformulée légèrement. {style_q}\n"
-                                    f"Zéro puce, zéro symbole mathématique brut.\n\nMatière :\n{matiere_cours[:24000]}"
+                                    f"Zéro puce, zéro symbole mathématique brut.\n\nMatière :\n{matiere_cours[:28000]}"
                                 )
                             else:
                                 st.session_state["est_rappel"] = False
                                 deja = "\n".join(f"- {q}" for q in st.session_state["historique_questions"][-8:])
                                 prompt_q = (
-                                    f"Pose UNE SEULE question orale courte (2 phrases max) portant sur n'importe quelle partie du cours. {style_q}\n"
+                                    f"Pose UNE SEULE question orale courte (2 phrases max) portant sur n'importe quel document chargé. {style_q}\n"
                                     f"Zéro puce, zéro symbole brut. Ne repose pas ces questions :\n{deja}\n\n"
-                                    f"Matière :\n{matiere_cours[:24000]}"
+                                    f"Matière :\n{matiere_cours[:28000]}"
                                 )
 
                             question_texte, _ = generer_texte_ia(prompt_q, gemini_key, groq_key)
@@ -1078,7 +1243,7 @@ if uploaded_file is not None:
                                     f"Tu évalues la réponse orale d'un étudiant (niveau : {difficulte}).\n"
                                     f"Question : {st.session_state['question_actuelle']}\n"
                                     f"Réponse de l'étudiant : {texte_dit}\n"
-                                    f"Cours : {matiere_cours[:22000]}\n\n"
+                                    f"Cours : {matiere_cours[:24000]}\n\n"
                                     f"Consignes :\n"
                                     f"1. Première ligne uniquement : 'STATUT: REUSSI' ou 'STATUT: A_REVOIR'.\n"
                                     f"2. Lignes suivantes : retour oral en 3 phrases courtes et directes (zéro puce ni symbole brut). "
