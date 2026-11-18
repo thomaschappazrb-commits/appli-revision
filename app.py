@@ -1,5 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 import hashlib
 import io
 import os
@@ -15,6 +16,7 @@ from pypdf import PdfReader
 from google import genai
 from google.genai import types
 from groq import Groq
+from supabase import create_client, Client
 
 st.set_page_config(
     page_title="Echo",
@@ -25,7 +27,6 @@ st.set_page_config(
 
 LOGO_URL = "https://raw.githubusercontent.com/thomaschappazrb-commits/appli-revision/main/logo.jpg"
 
-# Injection icône iOS/Android + suppression de " · Streamlit" dans l'onglet
 components.html(
     f"""
     <script>
@@ -156,7 +157,6 @@ st.markdown(
 
 
 def lire_secret(nom: str) -> str:
-    """Lit une clé secrète côté serveur uniquement."""
     try:
         return st.secrets[nom]
     except Exception:
@@ -167,6 +167,127 @@ def nettoyer_cle(cle: str) -> str:
     return cle.strip().encode("ascii", "ignore").decode("ascii")
 
 
+# ==========================================
+# CONNEXION SUPABASE (AUTH + STOCKAGE)
+# ==========================================
+SUPABASE_URL = lire_secret("SUPABASE_URL").strip()
+SUPABASE_KEY = nettoyer_cle(lire_secret("SUPABASE_KEY"))
+SUPABASE_ACTIF = bool(SUPABASE_URL and SUPABASE_KEY)
+
+
+def get_supabase() -> Client | None:
+    if not SUPABASE_ACTIF:
+        return None
+    client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    sess = st.session_state.get("sb_session")
+    if sess:
+        try:
+            client.auth.set_session(sess["access_token"], sess["refresh_token"])
+        except Exception:
+            pass
+    return client
+
+
+def sauvegarder_podcast_cloud(
+    titre: str,
+    filename: str,
+    audio_bytes: bytes,
+    mime_type: str,
+    info: str,
+    script: str,
+    duree_sec: int,
+) -> tuple[bool, str]:
+    user = st.session_state.get("sb_user")
+    client = get_supabase()
+    if not user or not client:
+        return False, "Non connecté"
+
+    ext = "wav" if "wav" in mime_type else "mp3"
+    nom_complet = f"{filename}.{ext}"
+    storage_path = f"{user['id']}/{int(time.time())}_{nom_complet}"
+
+    try:
+        client.storage.from_("podcasts").upload(
+            path=storage_path,
+            file=audio_bytes,
+            file_options={"content-type": mime_type, "upsert": "true"},
+        )
+        client.table("podcasts").insert(
+            {
+                "user_id": user["id"],
+                "titre": titre,
+                "filename": nom_complet,
+                "storage_path": storage_path,
+                "mime_type": mime_type,
+                "info": info,
+                "script": script,
+                "duree_sec": duree_sec,
+            }
+        ).execute()
+        return True, "Sauvegardé dans ta bibliothèque"
+    except Exception as e:
+        return False, f"Erreur sauvegarde cloud : {e}"
+
+
+def lister_podcasts_cloud() -> list[dict]:
+    user = st.session_state.get("sb_user")
+    client = get_supabase()
+    if not user or not client:
+        return []
+    try:
+        rep = (
+            client.table("podcasts")
+            .select("*")
+            .eq("user_id", user["id"])
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return rep.data or []
+    except Exception:
+        return []
+
+
+def supprimer_podcast_cloud(item: dict) -> bool:
+    client = get_supabase()
+    if not client:
+        return False
+    try:
+        client.storage.from_("podcasts").remove([item["storage_path"]])
+    except Exception:
+        pass
+    try:
+        client.table("podcasts").delete().eq("id", item["id"]).execute()
+        st.session_state.get("biblio_audio_cache", {}).pop(item["id"], None)
+        return True
+    except Exception:
+        return False
+
+
+def telecharger_audio_cloud(item: dict) -> bytes | None:
+    cache = st.session_state.setdefault("biblio_audio_cache", {})
+    if item["id"] in cache:
+        return cache[item["id"]]
+    client = get_supabase()
+    if not client:
+        return None
+    try:
+        data = client.storage.from_("podcasts").download(item["storage_path"])
+        cache[item["id"]] = data
+        return data
+    except Exception:
+        return None
+
+
+def formater_duree(sec: int) -> str:
+    if not sec or sec <= 0:
+        return ""
+    m, s = divmod(int(sec), 60)
+    return f"{m} min {s:02d} s"
+
+
+# ==========================================
+# MOTEURS IA & SYNTHÈSE VOCALE
+# ==========================================
 MODELES_GEMINI_TEXTE = [
     "gemini-3.8-flash",
     "gemini-3.8-flash-lite",
@@ -196,14 +317,12 @@ def nettoyer_texte_pour_oral(texte: str) -> str:
 
 
 def _silence_mp3(duree_ms: int) -> bytes:
-    """Génère un silence MP3 valide (MPEG-2 Layer III, 24 kHz, 48 kbps, mono = 24 ms/frame)."""
     nb_frames = max(1, duree_ms // 24)
     frame_vide = b"\xff\xf3\x64\xc4" + (b"\x00" * 140)
     return frame_vide * nb_frames
 
 
 def _pcm_vers_wav(pcm_bytes: bytes, sample_rate: int = 24000) -> bytes:
-    """Encapsule un flux PCM brut 16-bit mono en fichier WAV lisible par tous les navigateurs."""
     if pcm_bytes[:4] == b"RIFF":
         return pcm_bytes
     buf = io.BytesIO()
@@ -221,7 +340,6 @@ async def _ecrire_edge_async(texte: str, voix: str, vitesse: str, chemin_mp3: st
 
 
 def _segment_edge_tts(texte: str, voix: str, vitesse: str) -> bytes:
-    """Génère un segment MP3 directement via edge_tts en Python (sans sous-processus)."""
     texte_propre = nettoyer_texte_pour_oral(texte)
     if not texte_propre:
         return b""
@@ -258,7 +376,6 @@ def _segment_edge_tts(texte: str, voix: str, vitesse: str) -> bytes:
 
 
 def _synthese_gemini_tts(script: str, gemini_key: str, est_duo: bool, vitesse: str) -> tuple[bytes, str]:
-    """Synthèse vocale naturelle via Gemini TTS (mono ou multi-interlocuteurs)."""
     client = genai.Client(api_key=gemini_key)
     indication_rythme = (
         "Lis à un rythme posé, calme et articulé, avec des respirations naturelles."
@@ -348,7 +465,6 @@ def synthese_audio_solo(
     vitesse: str,
     barre_progression=None,
 ) -> tuple[bytes, str, str]:
-    """Retourne (audio_bytes, mime_type, info_moteur)."""
     if gemini_key:
         try:
             wav_bytes, info = _synthese_gemini_tts(nettoyer_texte_pour_oral(texte), gemini_key, False, vitesse)
@@ -393,7 +509,6 @@ def synthese_audio_dialogue(
     vitesse: str,
     barre_progression=None,
 ) -> tuple[bytes, str, str]:
-    """Assemble un dialogue à 2 voix avec vraies respirations."""
     lignes_dialogue = []
     for ligne in script_brut.splitlines():
         ligne = ligne.strip()
@@ -444,7 +559,6 @@ def synthese_audio_dialogue(
 
 
 def generer_texte_ia(prompt: str, gemini_key: str, groq_key: str, temperature: float = 0.45) -> tuple[str, str]:
-    """Appelle Gemini en priorité, puis Groq en secours."""
     erreurs = []
 
     if gemini_key:
@@ -493,7 +607,6 @@ def generer_texte_ia(prompt: str, gemini_key: str, groq_key: str, temperature: f
 
 
 def construire_carte_cours(texte_complet: str, gemini_key: str, groq_key: str) -> str:
-    """Analyse l'intégralité des documents par blocs (jusqu'à ~160 000 caractères)."""
     texte_propre = re.sub(r"\n{3,}", "\n\n", texte_complet).strip()
     if len(texte_propre) <= 18000:
         return texte_propre
@@ -523,7 +636,6 @@ def construire_carte_cours(texte_complet: str, gemini_key: str, groq_key: str) -
 
 
 def generer_titre_episode(matiere: str, noms_fichiers: list[str], gemini_key: str, groq_key: str) -> tuple[str, str]:
-    """Génère un titre éditorial court et un nom de fichier propre sans accents."""
     prompt = (
         f"Donne un titre court, clair et précis (3 à 6 mots maximum) qui résume le thème principal de ces documents de cours.\n"
         f"Documents : {', '.join(noms_fichiers)}\n"
@@ -551,7 +663,6 @@ def generer_script_podcast_long(
     groq_key: str,
     zone_statut=None,
 ) -> tuple[str, str]:
-    """Génère un script calibré sur la durée choisie (en plusieurs actes au-delà de 8 min)."""
     mots_cibles = duree_minutes * 140
     nb_actes = max(1, round(duree_minutes / 6))
 
@@ -570,7 +681,6 @@ def generer_script_podcast_long(
         else "FORMAT STRICT : paragraphes fluides et naturels pour un seul narrateur."
     )
 
-    # Cas court (5 à 8 min) : un seul appel suffit
     if nb_actes == 1:
         if zone_statut:
             zone_statut.write(f"1/2 — Écriture du script (~{duree_minutes} min, ~{mots_cibles} mots)...")
@@ -582,7 +692,6 @@ def generer_script_podcast_long(
         )
         return generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.5)
 
-    # Cas long (9 à 30 min) : planification + rédaction acte par acte pour garantir la durée et le détail
     if zone_statut:
         zone_statut.write(f"1/{nb_actes + 2} — Découpage de l'épisode en {nb_actes} actes détaillés...")
 
@@ -656,7 +765,6 @@ def generer_script_podcast_long(
 
 
 def transcrire_audio_groq(audio_bytes: bytes, groq_key: str) -> str:
-    """Transcrit la réponse vocale via Whisper sur Groq."""
     client_groq = Groq(api_key=groq_key, timeout=15.0)
     modeles_whisper = [
         m.id for m in client_groq.models.list().data
@@ -723,7 +831,7 @@ def reinitialiser_cours():
     cles = [
         "carte_cours", "nb_pages_pdf", "noms_fichiers",
         "podcast_audio", "podcast_mime", "podcast_script", "podcast_info",
-        "podcast_titre", "podcast_filename",
+        "podcast_titre", "podcast_filename", "podcast_sauvegarde_msg",
         "plan_cours", "etape_index", "guide_texte", "guide_audio", "guide_mime",
         "guide_feedback_texte", "guide_feedback_audio", "guide_feedback_mime", "guide_transcription",
         "question_actuelle", "question_audio", "question_mime",
@@ -743,16 +851,16 @@ for cle, val in [
     ("historique_questions", []),
     ("a_revoir", []),
     ("est_rappel", False),
+    ("mode_invite", False),
 ]:
     if cle not in st.session_state:
         st.session_state[cle] = val
 
-# Lecture sécurisée des clés côté serveur
 groq_key = nettoyer_cle(lire_secret("GROQ_API_KEY"))
 gemini_key = nettoyer_cle(lire_secret("GEMINI_API_KEY"))
 
 # ==========================================
-# EN-TÊTE ECHO + RÉGLAGES RAPIDES
+# EN-TÊTE ECHO + COMPTE & RÉGLAGES
 # ==========================================
 col_hero, col_cfg = st.columns([4, 1.3], vertical_alignment="center")
 with col_hero:
@@ -770,7 +878,7 @@ with col_hero:
     )
 
 with col_cfg:
-    with st.popover("⚙️ Audio"):
+    with st.popover("⚙️ Réglages"):
         vitesse_voix = st.select_slider(
             "Rythme vocal :",
             options=["-20%", "-12%", "-6%", "+0%", "+8%"],
@@ -779,14 +887,177 @@ with col_cfg:
         choix_voix = st.selectbox("Voix solo :", list(VOIX_EDGE.keys()))
         voix_edge = VOIX_EDGE[choix_voix]
 
-        if gemini_key:
-            st.caption("✨ Moteur : **Gemini + Studio TTS** actif")
-        else:
-            st.caption("⚡ Moteur : **Groq + Edge TTS** actif")
+        if "sb_user" in st.session_state:
+            st.divider()
+            st.caption(f"👤 {st.session_state['sb_user']['email']}")
+            if st.button("🚪 Se déconnecter"):
+                client_sb = get_supabase()
+                if client_sb:
+                    try:
+                        client_sb.auth.sign_out()
+                    except Exception:
+                        pass
+                for k in ("sb_user", "sb_session", "biblio_audio_cache"):
+                    st.session_state.pop(k, None)
+                st.session_state["mode_invite"] = False
+                st.rerun()
+        elif st.session_state.get("mode_invite") and SUPABASE_ACTIF:
+            st.divider()
+            if st.button("🔐 Se connecter"):
+                st.session_state["mode_invite"] = False
+                st.rerun()
 
         if not groq_key and not gemini_key:
             groq_key = nettoyer_cle(st.text_input("Clé Groq (local) :", type="password"))
             gemini_key = nettoyer_cle(st.text_input("Clé Gemini (local) :", type="password"))
+
+# ==========================================
+# ÉCRAN DE CONNEXION / INSCRIPTION
+# ==========================================
+if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state["mode_invite"]:
+    st.markdown(
+        """
+        <div class="echo-card">
+            <span class="echo-badge">ESPACE PERSONNEL</span>
+            <div style="font-size:1.05rem;font-weight:600;color:#F8FAFC;">Connecte-toi pour retrouver tes podcasts sauvegardés</div>
+            <div style="font-size:0.86rem;color:#94A3B8;margin-top:4px;">
+                Chaque épisode généré est enregistré automatiquement dans ton compte pour le réécouter ou le télécharger avant de courir.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    tab_login, tab_signup = st.tabs(["🔑 Connexion", "✨ Créer un compte"])
+
+    with tab_login:
+        with st.form("form_login"):
+            email_in = st.text_input("Email")
+            pass_in = st.text_input("Mot de passe", type="password")
+            if st.form_submit_button("Se connecter", type="primary"):
+                if not email_in or not pass_in:
+                    st.warning("Renseigne ton email et ton mot de passe.")
+                else:
+                    try:
+                        sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+                        res = sb.auth.sign_in_with_password({"email": email_in.strip(), "password": pass_in})
+                        if res.user and res.session:
+                            st.session_state["sb_user"] = {"id": res.user.id, "email": res.user.email}
+                            st.session_state["sb_session"] = {
+                                "access_token": res.session.access_token,
+                                "refresh_token": res.session.refresh_token,
+                            }
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Connexion impossible : {e}")
+
+    with tab_signup:
+        with st.form("form_signup"):
+            email_up = st.text_input("Email")
+            pass_up = st.text_input("Mot de passe (6 caractères minimum)", type="password")
+            if st.form_submit_button("Créer mon compte", type="primary"):
+                if not email_up or len(pass_up) < 6:
+                    st.warning("Entre un email valide et un mot de passe d'au moins 6 caractères.")
+                else:
+                    try:
+                        sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+                        res = sb.auth.sign_up({"email": email_up.strip(), "password": pass_up})
+                        if res.user and res.session:
+                            st.session_state["sb_user"] = {"id": res.user.id, "email": res.user.email}
+                            st.session_state["sb_session"] = {
+                                "access_token": res.session.access_token,
+                                "refresh_token": res.session.refresh_token,
+                            }
+                            st.rerun()
+                        else:
+                            st.info("Compte créé ! Connecte-toi dans l'onglet Connexion.")
+                    except Exception as e:
+                        st.error(f"Création impossible : {e}")
+
+    if st.button("Continuer sans compte (non sauvegardé)"):
+        st.session_state["mode_invite"] = True
+        st.rerun()
+
+    st.stop()
+
+
+# ==========================================
+# FONCTION D'AFFICHAGE DE LA BIBLIOTHÈQUE
+# ==========================================
+def afficher_bibliotheque():
+    if "sb_user" not in st.session_state:
+        st.info("Connecte-toi via **⚙️ Réglages** pour sauvegarder et retrouver tes podcasts.")
+        return
+
+    episodes = lister_podcasts_cloud()
+    if not episodes:
+        st.markdown(
+            """
+            <div class="echo-card">
+                <span class="echo-badge">BIBLIOTHÈQUE VIDE</span>
+                <div style="color:#CBD5E1;font-size:0.92rem;">
+                    Aucun podcast enregistré pour le moment. Génère un épisode dans l'onglet <b>🎙️ Podcast</b> : il apparaîtra automatiquement ici.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    st.caption(f"📚 **{len(episodes)}** épisode(s) sauvegardé(s) sur ton compte")
+    for ep in episodes:
+        try:
+            date_txt = datetime.fromisoformat(ep["created_at"].replace("Z", "+00:00")).strftime("%d/%m/%Y à %H:%M")
+        except Exception:
+            date_txt = ""
+        duree_txt = formater_duree(ep.get("duree_sec", 0))
+        meta = " • ".join(x for x in [date_txt, duree_txt, ep.get("info", "")] if x)
+
+        st.markdown(
+            f"""
+            <div class="echo-card" style="margin-bottom:8px;">
+                <div style="font-size:1.02rem;font-weight:700;color:#F8FAFC;">{ep['titre']}</div>
+                <div style="font-size:0.78rem;color:#94A3B8;margin-top:3px;">{meta}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        audio_cache = st.session_state.get("biblio_audio_cache", {}).get(ep["id"])
+        col1, col2, col3 = st.columns([1.4, 1.4, 1])
+        with col1:
+            if st.button("▶️ Écouter", key=f"play_{ep['id']}"):
+                with st.spinner("Chargement de l'audio..."):
+                    audio_cache = telecharger_audio_cloud(ep)
+                st.rerun()
+        with col2:
+            if audio_cache:
+                st.download_button(
+                    label="⬇️ Télécharger",
+                    data=audio_cache,
+                    file_name=ep["filename"],
+                    mime=ep.get("mime_type", "audio/mp3"),
+                    key=f"dl_{ep['id']}",
+                )
+            else:
+                if st.button("⬇️ Préparer MP3", key=f"prep_{ep['id']}"):
+                    with st.spinner("Téléchargement..."):
+                        telecharger_audio_cloud(ep)
+                    st.rerun()
+        with col3:
+            if st.button("🗑️ Suppr.", key=f"del_{ep['id']}"):
+                if supprimer_podcast_cloud(ep):
+                    st.rerun()
+                else:
+                    st.error("Suppression impossible.")
+
+        if audio_cache:
+            st.audio(audio_cache, format=ep.get("mime_type", "audio/mp3"))
+
+        if ep.get("script"):
+            with st.expander("📄 Script de l'épisode"):
+                st.write(ep["script"])
+
 
 if st.session_state["a_revoir"]:
     maintenant = time.time()
@@ -801,7 +1072,7 @@ if st.session_state["a_revoir"]:
             st.rerun()
 
 # ==========================================
-# CHARGEMENT MULTI-DOCUMENTS (PDF OU TXT)
+# ZONE DE DÉPÔT MULTI-DOCUMENTS
 # ==========================================
 uploaded_files = st.file_uploader(
     "Dépose un ou plusieurs cours (PDF ou TXT)",
@@ -809,7 +1080,12 @@ uploaded_files = st.file_uploader(
     accept_multiple_files=True,
 )
 
-if uploaded_files:
+# Si aucun fichier n'est déposé, on affiche directement la bibliothèque des podcasts sauvegardés
+if not uploaded_files:
+    if "sb_user" in st.session_state:
+        st.subheader("📚 Mes podcasts sauvegardés")
+        afficher_bibliotheque()
+else:
     signature_fichiers = tuple((f.name, f.size) for f in uploaded_files)
     if st.session_state.get("fichiers_actuels") != signature_fichiers:
         reinitialiser_cours()
@@ -836,9 +1112,7 @@ if uploaded_files:
         st.warning("Aucun texte détecté dans les fichiers déposés.")
     else:
         if "carte_cours" not in st.session_state:
-            label_analyse = (
-                f"Analyse complète de {len(noms_fichiers)} document(s) ({nb_pages} page(s))..."
-            )
+            label_analyse = f"Analyse complète de {len(noms_fichiers)} document(s) ({nb_pages} page(s))..."
             with st.status(label_analyse, expanded=False) as st_load:
                 try:
                     st.session_state["carte_cours"] = construire_carte_cours(texte_brut, gemini_key, groq_key)
@@ -854,14 +1128,15 @@ if uploaded_files:
 
         matiere_cours = st.session_state.get("carte_cours", texte_brut[:32000])
 
-        tab_podcast, tab_guide, tab_quiz = st.tabs([
+        tab_podcast, tab_guide, tab_quiz, tab_biblio = st.tabs([
             "🎙️ Podcast",
             "🧭 Cours pas-à-pas",
             "🔥 Crash-test",
+            "📚 Mes podcasts",
         ])
 
         # ==========================================
-        # MODE 1 : PODCAST LONG & NOMMÉ PAR IA
+        # MODE 1 : PODCAST LONG + SAUVEGARDE AUTO
         # ==========================================
         with tab_podcast:
             st.markdown(
@@ -869,7 +1144,7 @@ if uploaded_files:
                 <div class="echo-card">
                     <span class="echo-badge">ÉPISODE SUR MESURE</span>
                     <div style="color:#CBD5E1;font-size:0.9rem;">
-                        Synthétise l'ensemble de tes documents déposés. Au-delà de 8 min, l'épisode est structuré en plusieurs actes détaillés pour tout couvrir sans raccourci.
+                        Synthétise l'ensemble de tes documents déposés et l'enregistre automatiquement dans ta bibliothèque.
                     </div>
                 </div>
                 """,
@@ -930,13 +1205,30 @@ if uploaded_files:
                                     script_audio, gemini_key, voix_edge, vitesse_voix, barre
                                 )
 
-                            nb_mots_reels = len(script_audio.split())
+                            duree_reelle_sec = (
+                                len(audio_bytes) // 48000 if "wav" in mime_audio else len(audio_bytes) // 6000
+                            )
+                            info_complete = f"{modele_txt} • {info_voix} • {formater_duree(duree_reelle_sec)}"
+
                             st.session_state["podcast_audio"] = audio_bytes
                             st.session_state["podcast_mime"] = mime_audio
                             st.session_state["podcast_script"] = script_audio
                             st.session_state["podcast_titre"] = titre_ep
                             st.session_state["podcast_filename"] = base_filename
-                            st.session_state["podcast_info"] = f"{modele_txt} • {info_voix} • ~{nb_mots_reels} mots"
+                            st.session_state["podcast_info"] = info_complete
+
+                            if "sb_user" in st.session_state:
+                                ok_save, msg_save = sauvegarder_podcast_cloud(
+                                    titre=titre_ep,
+                                    filename=base_filename,
+                                    audio_bytes=audio_bytes,
+                                    mime_type=mime_audio,
+                                    info=f"{modele_txt} • {info_voix}",
+                                    script=script_audio,
+                                    duree_sec=duree_reelle_sec,
+                                )
+                                st.session_state["podcast_sauvegarde_msg"] = (ok_save, msg_save)
+
                             status.update(label="Épisode prêt !", state="complete", expanded=False)
                         except Exception as e:
                             status.update(label="Erreur", state="error")
@@ -957,6 +1249,13 @@ if uploaded_files:
                     """,
                     unsafe_allow_html=True,
                 )
+                if "podcast_sauvegarde_msg" in st.session_state:
+                    ok_s, msg_s = st.session_state["podcast_sauvegarde_msg"]
+                    if ok_s:
+                        st.caption(f"☁️ {msg_s}")
+                    else:
+                        st.warning(msg_s)
+
                 st.audio(st.session_state["podcast_audio"], format=st.session_state["podcast_mime"])
                 st.download_button(
                     label=f"⬇️ Sauvegarder « {nom_fichier_dl} »",
@@ -968,7 +1267,7 @@ if uploaded_files:
                     st.write(st.session_state["podcast_script"])
 
         # ==========================================
-        # MODE 2 : COURS GUIDÉ PAS-À-PAS (AUTO-MICRO)
+        # MODE 2 : COURS GUIDÉ PAS-À-PAS
         # ==========================================
         with tab_guide:
             if "plan_cours" not in st.session_state:
@@ -1282,3 +1581,9 @@ if uploaded_files:
                     format=st.session_state.get("feedback_mime", "audio/mp3"),
                     autoplay=True,
                 )
+
+        # ==========================================
+        # MODE 4 : BIBLIOTHÈQUE DES ANCIENS PODCASTS
+        # ==========================================
+        with tab_biblio:
+            afficher_bibliotheque()
