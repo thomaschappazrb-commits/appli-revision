@@ -69,29 +69,28 @@ st.markdown(
         background: transparent !important;
     }
     .block-container {
-        padding-top: 1.2rem !important;
+        padding-top: 1.3rem !important;
         padding-bottom: 3rem !important;
-        max-width: 720px !important;
+        max-width: 680px !important;
     }
-    .echo-hero {
+    .echo-header {
         display: flex;
         align-items: center;
         gap: 14px;
-        padding: 14px 18px;
-        background: linear-gradient(135deg, #0F172A 0%, #111827 100%);
-        border: 1px solid rgba(56, 189, 248, 0.22);
-        border-radius: 18px;
-        margin-bottom: 14px;
+        padding: 12px 16px;
+        background-color: #0F172A;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 16px;
+        margin-bottom: 16px;
     }
-    .echo-hero img {
-        width: 52px;
-        height: 52px;
-        border-radius: 13px;
+    .echo-header img {
+        width: 46px;
+        height: 46px;
+        border-radius: 11px;
         object-fit: cover;
-        box-shadow: 0 4px 16px rgba(56, 189, 248, 0.25);
     }
     .echo-title {
-        font-size: 1.55rem;
+        font-size: 1.4rem;
         font-weight: 700;
         color: #F8FAFC;
         margin: 0;
@@ -99,56 +98,101 @@ st.markdown(
         letter-spacing: -0.02em;
     }
     .echo-sub {
-        font-size: 0.88rem;
+        font-size: 0.84rem;
         color: #94A3B8;
         margin: 2px 0 0 0;
     }
-    .echo-card {
-        background-color: #111827;
-        border: 1px solid rgba(148, 163, 184, 0.14);
-        border-radius: 16px;
+    .echo-panel {
+        background-color: #0F172A;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-radius: 14px;
         padding: 16px 18px;
-        margin: 10px 0 14px 0;
+        margin: 8px 0 14px 0;
     }
-    .echo-badge {
-        display: inline-block;
-        font-size: 0.75rem;
+    .echo-panel-title {
+        font-size: 1.02rem;
         font-weight: 600;
+        color: #F8FAFC;
+        margin: 0 0 4px 0;
+        letter-spacing: -0.01em;
+    }
+    .echo-panel-desc {
+        font-size: 0.86rem;
+        color: #94A3B8;
+        margin: 0;
+        line-height: 1.45;
+    }
+    .echo-kicker {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
         color: #38BDF8;
-        background: rgba(56, 189, 248, 0.12);
-        border: 1px solid rgba(56, 189, 248, 0.28);
-        padding: 3px 10px;
-        border-radius: 999px;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
     }
     .stButton > button {
         width: 100%;
-        border-radius: 13px !important;
-        padding: 0.62rem 1rem !important;
+        border-radius: 11px !important;
+        padding: 0.56rem 0.9rem !important;
         font-weight: 600 !important;
-        border: 1px solid rgba(56, 189, 248, 0.3) !important;
-        transition: all 0.15s ease !important;
+        font-size: 0.9rem !important;
+        background-color: #1E293B !important;
+        color: #F8FAFC !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+        transition: background-color 0.15s ease !important;
+    }
+    .stButton > button:hover {
+        background-color: #334155 !important;
     }
     .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #0284C7 0%, #38BDF8 100%) !important;
-        color: #04101E !important;
-        border: none !important;
+        background-color: #0284C7 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #0284C7 !important;
     }
+    .stButton > button[kind="primary"]:hover {
+        background-color: #0369A1 !important;
+    }
+    .stDownloadButton > button {
+        width: 100%;
+        border-radius: 11px !important;
+        padding: 0.56rem 0.9rem !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        background-color: #1E293B !important;
+        color: #F8FAFC !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+    }
+    /* Zone de dépôt épurée en français */
     [data-testid="stFileUploader"] section {
         background-color: #0F172A !important;
-        border: 1.5px dashed rgba(56, 189, 248, 0.35) !important;
-        border-radius: 16px !important;
+        border: 1px dashed rgba(148, 163, 184, 0.32) !important;
+        border-radius: 14px !important;
+        padding: 14px 16px !important;
+    }
+    [data-testid="stFileUploaderDropzoneInstructions"] > div > span {
+        display: none !important;
+    }
+    [data-testid="stFileUploaderDropzoneInstructions"] > div::before {
+        content: "Glisser un ou plusieurs fichiers PDF ou TXT";
+        font-size: 0.88rem;
+        color: #CBD5E1;
+        display: block;
+    }
+    [data-testid="stFileUploaderDropzoneInstructions"] small {
+        display: none !important;
     }
     .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
+        gap: 4px;
         background-color: #0F172A;
-        padding: 5px;
-        border-radius: 14px;
+        padding: 4px;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.12);
     }
     .stTabs [data-baseweb="tab"] {
-        border-radius: 10px !important;
-        padding: 8px 12px !important;
+        border-radius: 9px !important;
+        padding: 7px 14px !important;
         font-weight: 600 !important;
+        font-size: 0.88rem !important;
     }
     </style>
     """,
@@ -224,9 +268,9 @@ def sauvegarder_podcast_cloud(
                 "duree_sec": duree_sec,
             }
         ).execute()
-        return True, "Sauvegardé dans ta bibliothèque"
+        return True, "Enregistré dans la bibliothèque."
     except Exception as e:
-        return False, f"Erreur sauvegarde cloud : {e}"
+        return False, f"Erreur d'enregistrement : {e}"
 
 
 def lister_podcasts_cloud() -> list[dict]:
@@ -282,7 +326,7 @@ def formater_duree(sec: int) -> str:
     if not sec or sec <= 0:
         return ""
     m, s = divmod(int(sec), 60)
-    return f"{m} min {s:02d} s"
+    return f"{m} min {s:02d}"
 
 
 # ==========================================
@@ -372,7 +416,7 @@ def _segment_edge_tts(texte: str, voix: str, vitesse: str) -> bytes:
                     pass
         time.sleep(0.6 * (tentative + 1))
 
-    raise RuntimeError(f"Edge TTS indisponible : {derniere_erreur}")
+    raise RuntimeError(f"Synthèse vocale indisponible : {derniere_erreur}")
 
 
 def _synthese_gemini_tts(script: str, gemini_key: str, est_duo: bool, vitesse: str) -> tuple[bytes, str]:
@@ -380,7 +424,7 @@ def _synthese_gemini_tts(script: str, gemini_key: str, est_duo: bool, vitesse: s
     indication_rythme = (
         "Lis à un rythme posé, calme et articulé, avec des respirations naturelles."
         if "-" in vitesse
-        else "Lis d'un ton naturel, fluide et engagé, style podcast scientifique."
+        else "Lis d'un ton naturel, fluide et engagé."
     )
 
     if est_duo:
@@ -425,8 +469,6 @@ def _synthese_gemini_tts(script: str, gemini_key: str, est_duo: bool, vitesse: s
         blocs.append("\n".join(courant))
 
     pcm_total = bytearray()
-    modele_retenu = None
-
     for bloc in blocs:
         prompt_tts = f"{indication_rythme}\n\n{bloc}"
         succes_bloc = False
@@ -447,15 +489,14 @@ def _synthese_gemini_tts(script: str, gemini_key: str, est_duo: bool, vitesse: s
                         pcm_total.extend(data[44:])
                     else:
                         pcm_total.extend(data)
-                    modele_retenu = modele
                     succes_bloc = True
                     break
             except Exception:
                 continue
         if not succes_bloc:
-            raise RuntimeError("Gemini TTS indisponible ou quota atteint.")
+            raise RuntimeError("Synthèse studio indisponible.")
 
-    return _pcm_vers_wav(bytes(pcm_total)), f"Voix studio ({modele_retenu})"
+    return _pcm_vers_wav(bytes(pcm_total)), "2 voix" if est_duo else "1 voix"
 
 
 def synthese_audio_solo(
@@ -479,7 +520,7 @@ def synthese_audio_solo(
         mp3 = _segment_edge_tts(texte, voix_edge, vitesse)
         if barre_progression is not None:
             barre_progression.progress(1.0)
-        return mp3, "audio/mp3", "Voix Edge TTS"
+        return mp3, "audio/mp3", "1 voix"
 
     total = len(phrases)
     segments = [b""] * total
@@ -500,7 +541,7 @@ def synthese_audio_solo(
         assemblage.extend(seg)
         if i < total - 1:
             assemblage.extend(pause)
-    return bytes(assemblage), "audio/mp3", "Voix Edge TTS (rythme respiré)"
+    return bytes(assemblage), "audio/mp3", "1 voix"
 
 
 def synthese_audio_dialogue(
@@ -555,7 +596,7 @@ def synthese_audio_dialogue(
         if i < total - 1:
             audio_complet.extend(pause_tour)
 
-    return bytes(audio_complet), "audio/mp3", "Dialogue 2 voix (Edge TTS + pauses)"
+    return bytes(audio_complet), "audio/mp3", "2 voix"
 
 
 def generer_texte_ia(prompt: str, gemini_key: str, groq_key: str, temperature: float = 0.45) -> tuple[str, str]:
@@ -577,7 +618,7 @@ def generer_texte_ia(prompt: str, gemini_key: str, groq_key: str, temperature: f
                 if rep.text:
                     return rep.text, modele
             except Exception as e:
-                erreurs.append(f"Gemini {modele}: {e}")
+                erreurs.append(f"{modele}: {e}")
 
     if groq_key:
         try:
@@ -599,11 +640,11 @@ def generer_texte_ia(prompt: str, gemini_key: str, groq_key: str, temperature: f
                     )
                     return chat.choices[0].message.content, modele_groq
                 except Exception as e:
-                    erreurs.append(f"Groq {modele_groq}: {e}")
+                    erreurs.append(f"{modele_groq}: {e}")
         except Exception as e:
-            erreurs.append(f"Groq: {e}")
+            erreurs.append(str(e))
 
-    raise RuntimeError("Impossible de joindre l'IA.\n" + "\n".join(erreurs))
+    raise RuntimeError("Service temporairement indisponible.\n" + "\n".join(erreurs))
 
 
 def construire_carte_cours(texte_complet: str, gemini_key: str, groq_key: str) -> str:
@@ -617,14 +658,14 @@ def construire_carte_cours(texte_complet: str, gemini_key: str, groq_key: str) -
     def analyser_bloc(idx_bloc):
         idx, contenu = idx_bloc
         prompt = (
-            f"Tu extrais la matière pédagogique essentielle de la partie {idx + 1}/{len(blocs)} d'un ensemble de documents de cours.\n"
-            f"Conserve les repères '=== DOCUMENT : ... ===' s'ils apparaissent et liste de manière dense et précise :\n"
+            f"Extrais la matière pédagogique essentielle de la partie {idx + 1}/{len(blocs)} de ces documents.\n"
+            f"Conserve les repères '=== DOCUMENT : ... ===' s'ils apparaissent et liste de manière dense :\n"
             f"1. Les concepts et définitions clés\n"
-            f"2. Les mécanismes physiques/logiques et relations de cause à effet\n"
-            f"3. Les formules ou lois importantes traduites en mots (ex: proportionnel à, inverse du carré...)\n"
+            f"2. Les mécanismes et relations de cause à effet\n"
+            f"3. Les formules ou lois importantes traduites en mots\n"
             f"4. Les ordres de grandeur, cas limites ou pièges classiques.\n"
             f"Sois exhaustif et rigoureux, sans phrase d'introduction.\n\n"
-            f"Extrait du cours :\n{contenu}"
+            f"Extrait :\n{contenu}"
         )
         synthese, _ = generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.2)
         return f"--- PARTIE {idx + 1} ---\n{synthese.strip()}"
@@ -637,7 +678,7 @@ def construire_carte_cours(texte_complet: str, gemini_key: str, groq_key: str) -
 
 def generer_titre_episode(matiere: str, noms_fichiers: list[str], gemini_key: str, groq_key: str) -> tuple[str, str]:
     prompt = (
-        f"Donne un titre court, clair et précis (3 à 6 mots maximum) qui résume le thème principal de ces documents de cours.\n"
+        f"Donne un titre court, sobre et précis (3 à 6 mots maximum) qui résume le sujet principal de ces documents.\n"
         f"Documents : {', '.join(noms_fichiers)}\n"
         f"Contenu :\n{matiere[:8000]}\n\n"
         f"Réponds UNIQUEMENT par le titre, sans guillemets, sans point final, sans préfixe."
@@ -645,13 +686,13 @@ def generer_titre_episode(matiere: str, noms_fichiers: list[str], gemini_key: st
     try:
         titre_brut, _ = generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.3)
         titre_propre = re.sub(r"[\"'«»\n\r]", "", titre_brut).strip(" .:-")
-        titre_propre = titre_propre[:70] if titre_propre else "Episode de revision"
+        titre_propre = titre_propre[:70] if titre_propre else "Synthèse de cours"
     except Exception:
-        titre_propre = "Episode de revision"
+        titre_propre = "Synthèse de cours"
 
     sans_accents = unicodedata.normalize("NFKD", titre_propre).encode("ascii", "ignore").decode("ascii")
     slug = re.sub(r"[^a-zA-Z0-9]+", "_", sans_accents.lower()).strip("_")
-    slug = slug[:48] or "revision"
+    slug = slug[:48] or "synthese"
     return titre_propre, f"echo_{slug}"
 
 
@@ -667,40 +708,42 @@ def generer_script_podcast_long(
     nb_actes = max(1, round(duree_minutes / 6))
 
     regles_base = (
-        "RÈGLES PÉDAGOGIQUES STRICTES :\n"
-        "- INTERDICTION des formules creuses ('Bonjour', 'Bienvenue', 'C'est une super question !', 'Tout à fait !').\n"
+        "RÈGLES DE STYLE ORATOIRE STRICTES :\n"
+        "- INTERDICTION des formules creuses et tics de langage artificiels ('Bonjour', 'Bienvenue', 'En effet', 'Tout à fait', "
+        "'C'est une excellente question', 'C'est fascinant', 'En somme', 'Il est crucial de noter').\n"
+        "- Parle comme deux chercheurs ou étudiants avancés qui discutent naturellement sans script rigide.\n"
         "- Explique les mécanismes en profondeur avec des images mentales concrètes.\n"
         "- Traduis toute formule ou loi mathématique en français parlé clair (jamais de symboles bruts).\n"
         "- Aucun astérisque, aucune liste à puces, aucun titre ni markdown : uniquement du texte destiné à être lu à voix haute."
     )
     format_voix = (
         "FORMAT STRICT : chaque ligne commence exactement par 'PROF:' ou 'ELEVE:' suivi du texte parlé.\n"
-        "PROF est un expert limpide et précis ; ELEVE est une étudiante vive qui pose des questions pointues, "
-        "reformule avec ses mots et fait les liens entre les notions."
+        "PROF explique avec clarté et précision ; ELEVE pose des questions directes, "
+        "reformule avec ses mots et fait le lien entre les notions."
         if est_duo
         else "FORMAT STRICT : paragraphes fluides et naturels pour un seul narrateur."
     )
 
     if nb_actes == 1:
         if zone_statut:
-            zone_statut.write(f"1/2 — Écriture du script (~{duree_minutes} min, ~{mots_cibles} mots)...")
+            zone_statut.write(f"Rédaction du script ({duree_minutes} min)...")
         prompt = (
-            f"Écris un script de podcast pédagogique en français d'environ {mots_cibles} mots pour un étudiant qui court sans feuille.\n"
+            f"Écris un script audio pédagogique en français d'environ {mots_cibles} mots pour une écoute sans support visuel.\n"
             f"Attaque dès la 1re phrase par le problème concret que ce cours résout, déroule les mécanismes clés puis termine par 2 pièges classiques.\n"
             f"{regles_base}\n{format_voix}\n\n"
-            f"Matière complète des documents :\n{matiere_cours[:36000]}"
+            f"Matière des documents :\n{matiere_cours[:36000]}"
         )
         return generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.5)
 
     if zone_statut:
-        zone_statut.write(f"1/{nb_actes + 2} — Découpage de l'épisode en {nb_actes} actes détaillés...")
+        zone_statut.write(f"Structuration en {nb_actes} parties...")
 
     prompt_plan = (
-        f"Tu prépares un épisode de podcast approfondi de {duree_minutes} minutes couvrant L'INTÉGRALITÉ des documents fournis.\n"
-        f"Découpe l'épisode en exactement {nb_actes} actes chronologiques et complémentaires, "
-        f"en répartissant équitablement toutes les notions du début à la fin des documents.\n"
-        f"FORMAT STRICT : uniquement {nb_actes} lignes numérotées (1. ... à {nb_actes}. ...), détaillant les notions précises de chaque acte.\n\n"
-        f"Matière complète :\n{matiere_cours[:40000]}"
+        f"Tu prépares un épisode audio approfondi de {duree_minutes} minutes couvrant l'intégralité des documents fournis.\n"
+        f"Découpe l'épisode en exactement {nb_actes} parties chronologiques et complémentaires, "
+        f"en répartissant équitablement toutes les notions du début à la fin.\n"
+        f"FORMAT STRICT : uniquement {nb_actes} lignes numérotées (1. ... à {nb_actes}. ...), détaillant les notions de chaque partie.\n\n"
+        f"Matière :\n{matiere_cours[:40000]}"
     )
     plan_brut, modele_txt = generer_texte_ia(prompt_plan, gemini_key, groq_key, temperature=0.3)
     actes = [
@@ -709,7 +752,7 @@ def generer_script_podcast_long(
         if len(re.sub(r"^\s*[\d\-•*]+[\.\)\-:]?\s*", "", l).strip()) > 5
     ][:nb_actes]
     while len(actes) < nb_actes:
-        actes.append(f"Approfondissement et synthèse — partie {len(actes) + 1}")
+        actes.append(f"Approfondissement — partie {len(actes) + 1}")
 
     mots_par_acte = max(650, mots_cibles // nb_actes)
     repliques_par_acte = max(12, mots_par_acte // 55)
@@ -718,24 +761,24 @@ def generer_script_podcast_long(
 
     for i, sujet_acte in enumerate(actes):
         if zone_statut:
-            zone_statut.write(f"{i + 2}/{nb_actes + 2} — Rédaction de l'acte {i + 1}/{nb_actes} : {sujet_acte[:60]}...")
+            zone_statut.write(f"Rédaction partie {i + 1}/{nb_actes} : {sujet_acte[:55]}...")
 
         if i == 0:
             consigne_position = (
                 "C'est le DÉBUT de l'épisode : attaque dès la première phrase par le problème concret résolu par ce cours, "
-                "annonce rapidement le fil conducteur, puis développe à fond cet Acte 1. Ne conclus surtout pas l'épisode à la fin."
+                "annonce rapidement le fil conducteur, puis développe cette Partie 1. Ne conclus pas l'épisode à la fin."
             )
         elif i == nb_actes - 1:
             consigne_position = (
-                f"C'est le DERNIER acte ({i + 1}/{nb_actes}). Enchaîne directement dans la continuité de la fin de l'acte précédent "
-                f"(SANS dire bonjour ni réintroduire le podcast), développe à fond cet acte, puis termine par les pièges d'examen et une conclusion brève.\n"
-                f"Dernières lignes de l'acte précédent pour enchaîner naturellement :\n{derniere_transition}"
+                f"C'est la DERNIÈRE partie ({i + 1}/{nb_actes}). Enchaîne directement dans la continuité de la partie précédente "
+                f"(sans salutation ni réintroduction), développe cette partie, puis termine par les pièges d'examen et une conclusion sobre.\n"
+                f"Dernières lignes de la partie précédente :\n{derniere_transition}"
             )
         else:
             consigne_position = (
-                f"C'est l'acte intermédiaire {i + 1}/{nb_actes}. Enchaîne directement dans la continuité de la fin de l'acte précédent "
-                f"(SANS dire bonjour ni réintroduire le podcast, et SANS conclure l'épisode), en approfondissant chaque détail technique de cet acte.\n"
-                f"Dernières lignes de l'acte précédent pour enchaîner naturellement :\n{derniere_transition}"
+                f"C'est la partie intermédiaire {i + 1}/{nb_actes}. Enchaîne directement dans la continuité de la partie précédente "
+                f"(sans salutation ni réintroduction, et sans conclure l'épisode), en approfondissant chaque détail technique.\n"
+                f"Dernières lignes de la partie précédente :\n{derniere_transition}"
             )
 
         cible_acte = (
@@ -745,14 +788,14 @@ def generer_script_podcast_long(
         )
 
         prompt_acte = (
-            f"Tu rédiges l'Acte {i + 1} sur {nb_actes} d'un podcast universitaire approfondi de {duree_minutes} minutes.\n"
-            f"Plan complet de l'épisode :\n" + "\n".join(f"{k + 1}. {a}" for k, a in enumerate(actes)) + "\n\n"
-            f"SUJET EXCLUSIF DE CET ACTE {i + 1} : {sujet_acte}\n"
+            f"Tu rédiges la Partie {i + 1} sur {nb_actes} d'un épisode audio universitaire de {duree_minutes} minutes.\n"
+            f"Plan complet :\n" + "\n".join(f"{k + 1}. {a}" for k, a in enumerate(actes)) + "\n\n"
+            f"SUJET EXCLUSIF DE CETTE PARTIE {i + 1} : {sujet_acte}\n"
             f"{consigne_position}\n"
-            f"Longueur impérative pour cet acte : {cible_acte}. Ne résume pas superficiellement : explique les mécanismes, "
+            f"Longueur cible pour cette partie : {cible_acte}. Explique les mécanismes, "
             f"les relations entre grandeurs, les cas concrets et les subtilités.\n"
             f"{regles_base}\n{format_voix}\n\n"
-            f"Matière complète des documents :\n{matiere_cours[:40000]}"
+            f"Matière des documents :\n{matiere_cours[:40000]}"
         )
 
         texte_acte, modele_txt = generer_texte_ia(prompt_acte, gemini_key, groq_key, temperature=0.5)
@@ -771,7 +814,7 @@ def transcrire_audio_groq(audio_bytes: bytes, groq_key: str) -> str:
         if getattr(m, "active", True) and "whisper" in m.id.lower()
     ]
     if not modeles_whisper:
-        raise RuntimeError("Aucun modèle Whisper actif sur ton compte Groq.")
+        raise RuntimeError("Transcription vocale indisponible.")
     modeles_whisper.sort(key=lambda x: 0 if "turbo" in x.lower() else 1)
     transcription = client_groq.audio.transcriptions.create(
         file=("reponse.wav", audio_bytes),
@@ -797,21 +840,21 @@ def generer_etape_guidee(
 
     if plus_simple:
         consigne = (
-            f"L'étudiant n'a pas bien saisi l'étape {numero}/{total} : « {etape_actuelle} ».\n"
-            f"Réexplique cette notion BEAUCOUP plus simplement, sans formule ni jargon, à quelqu'un qui court sans feuille.\n"
-            f"Utilise une analogie concrète de la vie quotidienne en 75 mots maximum, avec des phrases courtes.\n"
-            f"Termine par UNE micro-question ultra simple pour vérifier que l'image mentale est claire."
+            f"Reformule l'étape {numero}/{total} (« {etape_actuelle} ») beaucoup plus simplement, sans formule ni jargon, "
+            f"pour une écoute sans support visuel.\n"
+            f"Utilise une analogie concrète en 75 mots maximum, avec des phrases courtes.\n"
+            f"Termine par une question courte pour vérifier que l'image mentale est claire."
         )
     else:
         consigne = (
-            f"Tu es un excellent pédagogue qui explique ce cours à l'oral à un étudiant qui court (sans schéma ni feuille).\n"
+            f"Explique à l'oral cette notion à un étudiant qui écoute sans schéma.\n"
             f"Étape {numero}/{total} : « {etape_actuelle} ».\n"
-            f"Explique UNIQUEMENT cette notion en 95 mots maximum.\n"
-            f"Règles strictes :\n"
-            f"- Attaque directement le sujet dès la première phrase (zéro 'Bonjour' ou 'Dans cette étape').\n"
+            f"Explique uniquement cette notion en 95 mots maximum.\n"
+            f"Règles :\n"
+            f"- Attaque directement le sujet dès la première phrase (sans salutation).\n"
             f"- Donne d'abord l'intuition physique ou logique, puis le mécanisme précis.\n"
             f"- Traduis toute relation mathématique en français parlé.\n"
-            f"- Termine par UNE micro-question courte (réponse en 5 secondes) pour vérifier la compréhension."
+            f"- Termine par une micro-question courte pour vérifier la compréhension."
         )
 
     prompt = f"{consigne}\n\nMatière du cours :\n{matiere_cours[:28000]}"
@@ -860,17 +903,17 @@ groq_key = nettoyer_cle(lire_secret("GROQ_API_KEY"))
 gemini_key = nettoyer_cle(lire_secret("GEMINI_API_KEY"))
 
 # ==========================================
-# EN-TÊTE ECHO + COMPTE & RÉGLAGES
+# EN-TÊTE SOBRE + COMPTE & AUDIO
 # ==========================================
-col_hero, col_cfg = st.columns([4, 1.3], vertical_alignment="center")
+col_hero, col_cfg = st.columns([4.2, 1.2], vertical_alignment="center")
 with col_hero:
     st.markdown(
         f"""
-        <div class="echo-hero">
+        <div class="echo-header">
             <img src="{LOGO_URL}" alt="Echo">
             <div>
                 <p class="echo-title">Echo</p>
-                <p class="echo-sub">Tes cours dans les oreilles, taillés pour courir</p>
+                <p class="echo-sub">Révision audio</p>
             </div>
         </div>
         """,
@@ -878,19 +921,19 @@ with col_hero:
     )
 
 with col_cfg:
-    with st.popover("⚙️ Réglages"):
+    with st.popover("Réglages"):
         vitesse_voix = st.select_slider(
-            "Rythme vocal :",
+            "Vitesse de lecture",
             options=["-20%", "-12%", "-6%", "+0%", "+8%"],
             value="-12%",
         )
-        choix_voix = st.selectbox("Voix solo :", list(VOIX_EDGE.keys()))
+        choix_voix = st.selectbox("Voix solo", list(VOIX_EDGE.keys()))
         voix_edge = VOIX_EDGE[choix_voix]
 
         if "sb_user" in st.session_state:
             st.divider()
-            st.caption(f"👤 {st.session_state['sb_user']['email']}")
-            if st.button("🚪 Se déconnecter"):
+            st.caption(st.session_state["sb_user"]["email"])
+            if st.button("Se déconnecter"):
                 client_sb = get_supabase()
                 if client_sb:
                     try:
@@ -903,38 +946,38 @@ with col_cfg:
                 st.rerun()
         elif st.session_state.get("mode_invite") and SUPABASE_ACTIF:
             st.divider()
-            if st.button("🔐 Se connecter"):
+            if st.button("Se connecter"):
                 st.session_state["mode_invite"] = False
                 st.rerun()
 
         if not groq_key and not gemini_key:
-            groq_key = nettoyer_cle(st.text_input("Clé Groq (local) :", type="password"))
-            gemini_key = nettoyer_cle(st.text_input("Clé Gemini (local) :", type="password"))
+            groq_key = nettoyer_cle(st.text_input("Clé Groq", type="password"))
+            gemini_key = nettoyer_cle(st.text_input("Clé Gemini", type="password"))
 
 # ==========================================
-# ÉCRAN DE CONNEXION / INSCRIPTION
+# ÉCRAN DE CONNEXION / INSCRIPTION ÉPURÉ
 # ==========================================
 if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state["mode_invite"]:
     st.markdown(
         """
-        <div class="echo-card">
-            <span class="echo-badge">ESPACE PERSONNEL</span>
-            <div style="font-size:1.05rem;font-weight:600;color:#F8FAFC;">Connecte-toi pour retrouver tes podcasts sauvegardés</div>
-            <div style="font-size:0.86rem;color:#94A3B8;margin-top:4px;">
-                Chaque épisode généré est enregistré automatiquement dans ton compte pour le réécouter ou le télécharger avant de courir.
-            </div>
+        <div class="echo-panel">
+            <div class="echo-kicker">Compte</div>
+            <p class="echo-panel-title">Accéder à ta bibliothèque</p>
+            <p class="echo-panel-desc">
+                Connecte-toi pour retrouver tes épisodes enregistrés, les écouter ou les télécharger hors-ligne.
+            </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    tab_login, tab_signup = st.tabs(["🔑 Connexion", "✨ Créer un compte"])
+    tab_login, tab_signup = st.tabs(["Connexion", "Inscription"])
 
     with tab_login:
         with st.form("form_login"):
-            email_in = st.text_input("Email")
+            email_in = st.text_input("Adresse email")
             pass_in = st.text_input("Mot de passe", type="password")
-            if st.form_submit_button("Se connecter", type="primary"):
+            if st.form_submit_button("Continuer", type="primary"):
                 if not email_in or not pass_in:
                     st.warning("Renseigne ton email et ton mot de passe.")
                 else:
@@ -949,13 +992,13 @@ if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state
                             }
                             st.rerun()
                     except Exception as e:
-                        st.error(f"Connexion impossible : {e}")
+                        st.error(f"Identifiants invalides : {e}")
 
     with tab_signup:
         with st.form("form_signup"):
-            email_up = st.text_input("Email")
+            email_up = st.text_input("Adresse email")
             pass_up = st.text_input("Mot de passe (6 caractères minimum)", type="password")
-            if st.form_submit_button("Créer mon compte", type="primary"):
+            if st.form_submit_button("Créer un compte", type="primary"):
                 if not email_up or len(pass_up) < 6:
                     st.warning("Entre un email valide et un mot de passe d'au moins 6 caractères.")
                 else:
@@ -970,11 +1013,11 @@ if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state
                             }
                             st.rerun()
                         else:
-                            st.info("Compte créé ! Connecte-toi dans l'onglet Connexion.")
+                            st.info("Compte créé. Connecte-toi dans l'onglet Connexion.")
                     except Exception as e:
                         st.error(f"Création impossible : {e}")
 
-    if st.button("Continuer sans compte (non sauvegardé)"):
+    if st.button("Continuer sans compte"):
         st.session_state["mode_invite"] = True
         st.rerun()
 
@@ -982,32 +1025,31 @@ if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state
 
 
 # ==========================================
-# FONCTION D'AFFICHAGE DE LA BIBLIOTHÈQUE
+# AFFICHAGE DE LA BIBLIOTHÈQUE
 # ==========================================
 def afficher_bibliotheque():
     if "sb_user" not in st.session_state:
-        st.info("Connecte-toi via **⚙️ Réglages** pour sauvegarder et retrouver tes podcasts.")
+        st.info("Connecte-toi via Réglages pour sauvegarder et retrouver tes épisodes.")
         return
 
     episodes = lister_podcasts_cloud()
     if not episodes:
         st.markdown(
             """
-            <div class="echo-card">
-                <span class="echo-badge">BIBLIOTHÈQUE VIDE</span>
-                <div style="color:#CBD5E1;font-size:0.92rem;">
-                    Aucun podcast enregistré pour le moment. Génère un épisode dans l'onglet <b>🎙️ Podcast</b> : il apparaîtra automatiquement ici.
-                </div>
+            <div class="echo-panel">
+                <p class="echo-panel-title">Aucun épisode enregistré</p>
+                <p class="echo-panel-desc">
+                    Importe un cours ci-dessus puis génère un podcast : il sera conservé ici automatiquement.
+                </p>
             </div>
             """,
             unsafe_allow_html=True,
         )
         return
 
-    st.caption(f"📚 **{len(episodes)}** épisode(s) sauvegardé(s) sur ton compte")
     for ep in episodes:
         try:
-            date_txt = datetime.fromisoformat(ep["created_at"].replace("Z", "+00:00")).strftime("%d/%m/%Y à %H:%M")
+            date_txt = datetime.fromisoformat(ep["created_at"].replace("Z", "+00:00")).strftime("%d/%m/%Y")
         except Exception:
             date_txt = ""
         duree_txt = formater_duree(ep.get("duree_sec", 0))
@@ -1015,37 +1057,37 @@ def afficher_bibliotheque():
 
         st.markdown(
             f"""
-            <div class="echo-card" style="margin-bottom:8px;">
-                <div style="font-size:1.02rem;font-weight:700;color:#F8FAFC;">{ep['titre']}</div>
-                <div style="font-size:0.78rem;color:#94A3B8;margin-top:3px;">{meta}</div>
+            <div class="echo-panel" style="margin-bottom:8px;">
+                <p class="echo-panel-title">{ep['titre']}</p>
+                <p class="echo-panel-desc">{meta}</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
         audio_cache = st.session_state.get("biblio_audio_cache", {}).get(ep["id"])
-        col1, col2, col3 = st.columns([1.4, 1.4, 1])
+        col1, col2, col3 = st.columns([1.3, 1.3, 1])
         with col1:
-            if st.button("▶️ Écouter", key=f"play_{ep['id']}"):
-                with st.spinner("Chargement de l'audio..."):
-                    audio_cache = telecharger_audio_cloud(ep)
+            if st.button("Écouter", key=f"play_{ep['id']}"):
+                with st.spinner("Chargement..."):
+                    telecharger_audio_cloud(ep)
                 st.rerun()
         with col2:
             if audio_cache:
                 st.download_button(
-                    label="⬇️ Télécharger",
+                    label="Télécharger",
                     data=audio_cache,
                     file_name=ep["filename"],
                     mime=ep.get("mime_type", "audio/mp3"),
                     key=f"dl_{ep['id']}",
                 )
             else:
-                if st.button("⬇️ Préparer MP3", key=f"prep_{ep['id']}"):
-                    with st.spinner("Téléchargement..."):
+                if st.button("Exporter MP3", key=f"prep_{ep['id']}"):
+                    with st.spinner("Préparation..."):
                         telecharger_audio_cloud(ep)
                     st.rerun()
         with col3:
-            if st.button("🗑️ Suppr.", key=f"del_{ep['id']}"):
+            if st.button("Supprimer", key=f"del_{ep['id']}"):
                 if supprimer_podcast_cloud(ep):
                     st.rerun()
                 else:
@@ -1055,18 +1097,18 @@ def afficher_bibliotheque():
             st.audio(audio_cache, format=ep.get("mime_type", "audio/mp3"))
 
         if ep.get("script"):
-            with st.expander("📄 Script de l'épisode"):
+            with st.expander("Transcription"):
                 st.write(ep["script"])
 
 
 if st.session_state["a_revoir"]:
     maintenant = time.time()
     pretes = sum(1 for item in st.session_state["a_revoir"] if maintenant >= item["heure_rappel"])
-    col_mem1, col_mem2 = st.columns([3, 1.4], vertical_alignment="center")
+    col_mem1, col_mem2 = st.columns([3.2, 1.2], vertical_alignment="center")
     with col_mem1:
-        st.caption(f"🧠 File mémoire : **{len(st.session_state['a_revoir'])}** notion(s) ({pretes} prête(s))")
+        st.caption(f"Notions à revoir : {len(st.session_state['a_revoir'])} ({pretes} prête(s))")
     with col_mem2:
-        if st.button("⏩ +10 min", key="sim_rappel"):
+        if st.button("Avancer 10 min", key="sim_rappel"):
             for item in st.session_state["a_revoir"]:
                 item["heure_rappel"] = time.time() - 1
             st.rerun()
@@ -1075,15 +1117,15 @@ if st.session_state["a_revoir"]:
 # ZONE DE DÉPÔT MULTI-DOCUMENTS
 # ==========================================
 uploaded_files = st.file_uploader(
-    "Dépose un ou plusieurs cours (PDF ou TXT)",
+    "Importer un cours",
     type=["pdf", "txt"],
     accept_multiple_files=True,
+    label_visibility="collapsed",
 )
 
-# Si aucun fichier n'est déposé, on affiche directement la bibliothèque des podcasts sauvegardés
 if not uploaded_files:
     if "sb_user" in st.session_state:
-        st.subheader("📚 Mes podcasts sauvegardés")
+        st.markdown('<div class="echo-kicker" style="margin-top:14px;">Bibliothèque</div>', unsafe_allow_html=True)
         afficher_bibliotheque()
 else:
     signature_fichiers = tuple((f.name, f.size) for f in uploaded_files)
@@ -1109,75 +1151,62 @@ else:
     texte_brut = "\n\n".join(morceaux_docs)
 
     if not texte_brut.strip():
-        st.warning("Aucun texte détecté dans les fichiers déposés.")
+        st.warning("Aucun texte détecté dans les fichiers importés.")
     else:
         if "carte_cours" not in st.session_state:
-            label_analyse = f"Analyse complète de {len(noms_fichiers)} document(s) ({nb_pages} page(s))..."
+            label_analyse = f"Indexation de {len(noms_fichiers)} document(s) ({nb_pages} page(s))..."
             with st.status(label_analyse, expanded=False) as st_load:
                 try:
                     st.session_state["carte_cours"] = construire_carte_cours(texte_brut, gemini_key, groq_key)
                     st.session_state["nb_pages_pdf"] = nb_pages
                     st.session_state["noms_fichiers"] = noms_fichiers
                     st_load.update(
-                        label=f"{len(noms_fichiers)} document(s) prêt(s) ({nb_pages} page(s) analysées)",
+                        label=f"{len(noms_fichiers)} document(s) prêt(s) ({nb_pages} page(s))",
                         state="complete",
                     )
                 except Exception as e:
-                    st_load.update(label="Erreur d'analyse", state="error")
+                    st_load.update(label="Erreur de lecture", state="error")
                     st.error(str(e))
 
         matiere_cours = st.session_state.get("carte_cours", texte_brut[:32000])
 
         tab_podcast, tab_guide, tab_quiz, tab_biblio = st.tabs([
-            "🎙️ Podcast",
-            "🧭 Cours pas-à-pas",
-            "🔥 Crash-test",
-            "📚 Mes podcasts",
+            "Podcast",
+            "Parcours",
+            "Quiz",
+            "Bibliothèque",
         ])
 
         # ==========================================
         # MODE 1 : PODCAST LONG + SAUVEGARDE AUTO
         # ==========================================
         with tab_podcast:
-            st.markdown(
-                """
-                <div class="echo-card">
-                    <span class="echo-badge">ÉPISODE SUR MESURE</span>
-                    <div style="color:#CBD5E1;font-size:0.9rem;">
-                        Synthétise l'ensemble de tes documents déposés et l'enregistre automatiquement dans ta bibliothèque.
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
             if hasattr(st, "segmented_control"):
                 format_audio = st.segmented_control(
-                    "Format :",
+                    "Format",
                     ["Dialogue (2 voix)", "Monologue (1 voix)"],
                     default="Dialogue (2 voix)",
                 ) or "Dialogue (2 voix)"
             else:
-                format_audio = st.radio("Format :", ["Dialogue (2 voix)", "Monologue (1 voix)"], horizontal=True)
+                format_audio = st.radio("Format", ["Dialogue (2 voix)", "Monologue (1 voix)"], horizontal=True)
 
             duree_cible = st.slider(
-                "Durée cible du podcast (minutes) :",
+                "Durée cible (minutes)",
                 min_value=5,
                 max_value=30,
                 value=12,
                 step=1,
             )
 
-            if st.button("🎧 Générer l'épisode audio", type="primary"):
+            if st.button("Générer l'épisode", type="primary"):
                 if not gemini_key and not groq_key:
-                    st.warning("Configure une clé API côté serveur.")
+                    st.warning("Clé API manquante.")
                 else:
-                    with st.status(f"Fabrication de ton épisode (~{duree_cible} min)...", expanded=True) as status:
+                    with st.status(f"Génération de l'épisode (~{duree_cible} min)...", expanded=True) as status:
                         try:
                             est_duo = "2 voix" in format_audio
-                            nb_actes = max(1, round(duree_cible / 6))
 
-                            script_audio, modele_txt = generer_script_podcast_long(
+                            script_audio, _ = generer_script_podcast_long(
                                 matiere_cours,
                                 duree_cible,
                                 est_duo,
@@ -1186,7 +1215,7 @@ else:
                                 zone_statut=status,
                             )
 
-                            status.write(f"{nb_actes + 1}/{nb_actes + 2} — Génération du titre éditorial...")
+                            status.write("Création du titre...")
                             titre_ep, base_filename = generer_titre_episode(
                                 matiere_cours,
                                 st.session_state.get("noms_fichiers", noms_fichiers),
@@ -1194,7 +1223,7 @@ else:
                                 groq_key,
                             )
 
-                            status.write(f"{nb_actes + 2}/{nb_actes + 2} — Enregistrement vocal en cours...")
+                            status.write("Synthèse vocale...")
                             barre = st.progress(0.0)
                             if est_duo:
                                 audio_bytes, mime_audio, info_voix = synthese_audio_dialogue(
@@ -1208,14 +1237,14 @@ else:
                             duree_reelle_sec = (
                                 len(audio_bytes) // 48000 if "wav" in mime_audio else len(audio_bytes) // 6000
                             )
-                            info_complete = f"{modele_txt} • {info_voix} • {formater_duree(duree_reelle_sec)}"
+                            info_propre = f"{info_voix} • {formater_duree(duree_reelle_sec)}"
 
                             st.session_state["podcast_audio"] = audio_bytes
                             st.session_state["podcast_mime"] = mime_audio
                             st.session_state["podcast_script"] = script_audio
                             st.session_state["podcast_titre"] = titre_ep
                             st.session_state["podcast_filename"] = base_filename
-                            st.session_state["podcast_info"] = info_complete
+                            st.session_state["podcast_info"] = info_propre
 
                             if "sb_user" in st.session_state:
                                 ok_save, msg_save = sauvegarder_podcast_cloud(
@@ -1223,28 +1252,28 @@ else:
                                     filename=base_filename,
                                     audio_bytes=audio_bytes,
                                     mime_type=mime_audio,
-                                    info=f"{modele_txt} • {info_voix}",
+                                    info=info_voix,
                                     script=script_audio,
                                     duree_sec=duree_reelle_sec,
                                 )
                                 st.session_state["podcast_sauvegarde_msg"] = (ok_save, msg_save)
 
-                            status.update(label="Épisode prêt !", state="complete", expanded=False)
+                            status.update(label="Épisode terminé", state="complete", expanded=False)
                         except Exception as e:
                             status.update(label="Erreur", state="error")
                             st.error(str(e))
 
             if "podcast_audio" in st.session_state:
                 ext = "wav" if "wav" in st.session_state["podcast_mime"] else "mp3"
-                nom_fichier_dl = f"{st.session_state.get('podcast_filename', 'echo_podcast')}.{ext}"
-                titre_affiche = st.session_state.get("podcast_titre", "Épisode de révision")
+                nom_fichier_dl = f"{st.session_state.get('podcast_filename', 'echo_episode')}.{ext}"
+                titre_affiche = st.session_state.get("podcast_titre", "Épisode")
 
                 st.markdown(
                     f"""
-                    <div class="echo-card">
-                        <span class="echo-badge">PRÊT À ÉCOUTER</span>
-                        <div style="font-size:1.05rem;font-weight:700;color:#F8FAFC;">{titre_affiche}</div>
-                        <div style="font-size:0.8rem;color:#94A3B8;margin-top:3px;">{st.session_state['podcast_info']}</div>
+                    <div class="echo-panel">
+                        <div class="echo-kicker">Épisode prêt</div>
+                        <p class="echo-panel-title">{titre_affiche}</p>
+                        <p class="echo-panel-desc">{st.session_state['podcast_info']}</p>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -1252,41 +1281,41 @@ else:
                 if "podcast_sauvegarde_msg" in st.session_state:
                     ok_s, msg_s = st.session_state["podcast_sauvegarde_msg"]
                     if ok_s:
-                        st.caption(f"☁️ {msg_s}")
+                        st.caption(msg_s)
                     else:
                         st.warning(msg_s)
 
                 st.audio(st.session_state["podcast_audio"], format=st.session_state["podcast_mime"])
                 st.download_button(
-                    label=f"⬇️ Sauvegarder « {nom_fichier_dl} »",
+                    label=f"Télécharger ({nom_fichier_dl})",
                     data=st.session_state["podcast_audio"],
                     file_name=nom_fichier_dl,
                     mime=st.session_state["podcast_mime"],
                 )
-                with st.expander("📄 Lire le script complet de l'épisode"):
+                with st.expander("Transcription"):
                     st.write(st.session_state["podcast_script"])
 
         # ==========================================
-        # MODE 2 : COURS GUIDÉ PAS-À-PAS
+        # MODE 2 : PARCOURS GUIDÉ PAS-À-PAS
         # ==========================================
         with tab_guide:
             if "plan_cours" not in st.session_state:
                 st.markdown(
                     """
-                    <div class="echo-card">
-                        <span class="echo-badge">PROGRESSION ACTIVE</span>
-                        <div style="color:#CBD5E1;font-size:0.9rem;">
-                            Les documents sont découpés en 5 briques digestes. À chaque étape, réponds au micro (envoi automatique dès que tu coupes) ou dis simplement <b>« plus simple »</b> ou <b>« suivant »</b>.
-                        </div>
+                    <div class="echo-panel">
+                        <p class="echo-panel-title">Cours oral en 5 étapes</p>
+                        <p class="echo-panel-desc">
+                            Chaque notion est expliquée brièvement puis validée au micro. Dis « plus simple » ou « suivant » pour naviguer à la voix.
+                        </p>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
-                if st.button("🚀 Lancer le cours pas-à-pas", type="primary"):
+                if st.button("Démarrer le parcours", type="primary"):
                     if not groq_key and not gemini_key:
-                        st.warning("Configure une clé API côté serveur.")
+                        st.warning("Clé API manquante.")
                     else:
-                        with st.status("Structuration du parcours...", expanded=True) as status:
+                        with st.status("Préparation du parcours...", expanded=True) as status:
                             try:
                                 prompt_plan = (
                                     f"Découpe l'intégralité de ces documents en 5 mini-étapes progressives pour un enseignement oral sans support visuel.\n"
@@ -1308,7 +1337,7 @@ else:
                                     matiere_cours, st.session_state["plan_cours"], 0,
                                     gemini_key, groq_key, voix_edge, vitesse_voix
                                 )
-                                status.update(label="Parcours prêt !", state="complete", expanded=False)
+                                status.update(label="Parcours prêt", state="complete", expanded=False)
                                 st.rerun()
                             except Exception as e:
                                 status.update(label="Erreur", state="error")
@@ -1318,17 +1347,17 @@ else:
                 idx = st.session_state["etape_index"]
 
                 if idx >= len(plan):
-                    st.success("🎉 Parcours terminé ! Passe sur l'onglet Crash-test pour ancrer ce que tu viens de voir.")
-                    if st.button("🔄 Recommencer le parcours"):
+                    st.info("Parcours terminé.")
+                    if st.button("Recommencer"):
                         st.session_state.pop("plan_cours", None)
                         st.rerun()
                 else:
                     st.progress((idx + 1) / len(plan))
                     st.markdown(
                         f"""
-                        <div class="echo-card">
-                            <span class="echo-badge">ÉTAPE {idx + 1} / {len(plan)}</span>
-                            <div style="font-size:1.05rem;font-weight:600;color:#F8FAFC;">{plan[idx]}</div>
+                        <div class="echo-panel">
+                            <div class="echo-kicker">Étape {idx + 1} sur {len(plan)}</div>
+                            <p class="echo-panel-title">{plan[idx]}</p>
                         </div>
                         """,
                         unsafe_allow_html=True,
@@ -1341,11 +1370,11 @@ else:
                         autoplay=not a_un_feedback,
                     )
 
-                    with st.expander("📄 Lire l'explication écrite"):
+                    with st.expander("Texte de l'étape"):
                         st.write(st.session_state["guide_texte"])
 
                     audio_guide = st.audio_input(
-                        "🎤 Appuie pour parler (envoi auto à l'arrêt) :",
+                        "Répondre au micro",
                         key=f"guide_micro_{st.session_state['guide_tour_id']}",
                     )
 
@@ -1354,7 +1383,7 @@ else:
                         h = hashlib.md5(raw_bytes).hexdigest()
                         if st.session_state.get("last_guide_audio_hash") != h:
                             st.session_state["last_guide_audio_hash"] = h
-                            with st.status("Écoute et analyse...", expanded=False) as status:
+                            with st.status("Analyse...", expanded=False) as status:
                                 try:
                                     texte_dit = transcrire_audio_groq(raw_bytes, groq_key)
                                     texte_lower = texte_dit.lower().strip()
@@ -1392,7 +1421,7 @@ else:
                                     st.session_state["guide_feedback_texte"] = feedback.strip()
                                     st.session_state["guide_feedback_audio"] = audio_fb
                                     st.session_state["guide_feedback_mime"] = mime_fb
-                                    status.update(label="Réponse prête", state="complete")
+                                    status.update(label="Terminé", state="complete")
                                     st.rerun()
                                 except Exception as e:
                                     status.update(label="Erreur", state="error")
@@ -1400,7 +1429,7 @@ else:
 
                     col_b, col_c = st.columns(2)
                     with col_b:
-                        if st.button("💡 Plus simple"):
+                        if st.button("Reformuler plus simplement"):
                             with st.spinner("Reformulation..."):
                                 generer_etape_guidee(
                                     matiere_cours, plan, idx,
@@ -1408,11 +1437,11 @@ else:
                                 )
                                 st.rerun()
                     with col_c:
-                        label_suiv = "➡️ Étape suivante" if idx + 1 < len(plan) else "🏁 Terminer"
+                        label_suiv = "Étape suivante" if idx + 1 < len(plan) else "Terminer"
                         if st.button(label_suiv, type="primary"):
                             st.session_state["etape_index"] += 1
                             if st.session_state["etape_index"] < len(plan):
-                                with st.spinner("Étape suivante..."):
+                                with st.spinner("Chargement..."):
                                     generer_etape_guidee(
                                         matiere_cours, plan, st.session_state["etape_index"],
                                         gemini_key, groq_key, voix_edge, vitesse_voix
@@ -1420,47 +1449,47 @@ else:
                             st.rerun()
 
                     if "guide_feedback_texte" in st.session_state:
-                        st.caption(f"Toi : *« {st.session_state['guide_transcription']} »*")
+                        st.caption(f"Ta réponse : « {st.session_state['guide_transcription']} »")
                         st.audio(
                             st.session_state["guide_feedback_audio"],
                             format=st.session_state.get("guide_feedback_mime", "audio/mp3"),
                             autoplay=True,
                         )
-                        with st.expander("📄 Lire la réponse du prof"):
+                        with st.expander("Texte du retour"):
                             st.write(st.session_state["guide_feedback_texte"])
 
         # ==========================================
-        # MODE 3 : CRASH-TEST & RAPPEL +10 MIN
+        # MODE 3 : QUIZ ORAL & RAPPEL +10 MIN
         # ==========================================
         with tab_quiz:
             if hasattr(st, "segmented_control"):
                 difficulte = st.segmented_control(
-                    "Intensité :",
-                    ["🟢 Footing", "🟠 Standard", "🔴 Examen"],
-                    default="🟠 Standard",
-                ) or "🟠 Standard"
+                    "Niveau",
+                    ["Rapide", "Standard", "Examen"],
+                    default="Standard",
+                ) or "Standard"
             else:
-                difficulte = st.radio("Intensité :", ["🟢 Footing", "🟠 Standard", "🔴 Examen"], horizontal=True)
+                difficulte = st.radio("Niveau", ["Rapide", "Standard", "Examen"], horizontal=True)
 
             notions_pretes = [
                 item for item in st.session_state["a_revoir"]
                 if time.time() >= item["heure_rappel"]
             ]
             label_bouton = (
-                f"🔁 Réviser la notion ratée ({len(notions_pretes)} prête(s))"
+                f"Réviser la notion à revoir ({len(notions_pretes)})"
                 if notions_pretes
-                else "🎯 Nouvelle question"
+                else "Nouvelle question"
             )
 
             if st.button(label_bouton, type="primary"):
                 if not groq_key and not gemini_key:
-                    st.warning("Configure une clé API côté serveur.")
+                    st.warning("Clé API manquante.")
                 else:
-                    with st.status("Préparation de la question...", expanded=False) as status:
+                    with st.status("Préparation...", expanded=False) as status:
                         try:
-                            if "Footing" in difficulte:
+                            if difficulte == "Rapide":
                                 style_q = "Pose un Vrai/Faux rapide (commence par 'Vrai ou faux :') ou une question qui se répond en 3 mots."
-                            elif "Standard" in difficulte:
+                            elif difficulte == "Standard":
                                 style_q = "Pose une question claire demandant d'expliquer en 2 phrases un mécanisme du cours."
                             else:
                                 style_q = "Pose une question exigeante de niveau examen : cas limite, piège classique ou lien entre deux notions."
@@ -1499,7 +1528,7 @@ else:
                             st.session_state.pop("feedback_audio", None)
                             st.session_state.pop("feedback_texte", None)
                             st.session_state.pop("transcription_user", None)
-                            status.update(label="Question prête", state="complete")
+                            status.update(label="Prêt", state="complete")
                             st.rerun()
                         except Exception as e:
                             status.update(label="Erreur", state="error")
@@ -1507,12 +1536,12 @@ else:
 
             if "question_actuelle" in st.session_state:
                 a_un_fb_quiz = "feedback_audio" in st.session_state
-                badge_q = "🔁 RAPPEL MÉMOIRE (+10 MIN)" if st.session_state["est_rappel"] else "QUESTION ORALE"
+                badge_q = "Rappel mémoire (+10 min)" if st.session_state["est_rappel"] else "Question"
                 st.markdown(
                     f"""
-                    <div class="echo-card">
-                        <span class="echo-badge">{badge_q}</span>
-                        <div style="font-size:1.02rem;color:#F8FAFC;">{st.session_state['question_actuelle']}</div>
+                    <div class="echo-panel">
+                        <div class="echo-kicker">{badge_q}</div>
+                        <p class="echo-panel-desc" style="color:#F8FAFC;font-size:0.98rem;">{st.session_state['question_actuelle']}</p>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -1524,7 +1553,7 @@ else:
                 )
 
                 audio_rep = st.audio_input(
-                    "🎤 Réponds à voix haute (envoi auto à l'arrêt) :",
+                    "Répondre au micro",
                     key=f"micro_{st.session_state['q_id']}",
                 )
 
@@ -1533,7 +1562,7 @@ else:
                     h_rep = hashlib.md5(raw_rep).hexdigest()
                     if st.session_state.get("last_quiz_audio_hash") != h_rep:
                         st.session_state["last_quiz_audio_hash"] = h_rep
-                        with st.status("Correction en cours...", expanded=False) as status:
+                        with st.status("Correction...", expanded=False) as status:
                             try:
                                 texte_dit = transcrire_audio_groq(raw_rep, groq_key)
                                 st.session_state["transcription_user"] = texte_dit
@@ -1564,18 +1593,18 @@ else:
                                 st.session_state["feedback_statut"] = "À revoir dans 10 min" if est_a_revoir else "Validé"
                                 st.session_state["feedback_audio"] = audio_fb
                                 st.session_state["feedback_mime"] = mime_fb
-                                status.update(label="Correction prête", state="complete")
+                                status.update(label="Terminé", state="complete")
                                 st.rerun()
                             except Exception as e:
                                 status.update(label="Erreur", state="error")
                                 st.error(str(e))
 
             if "feedback_texte" in st.session_state:
-                st.caption(f"Toi : *« {st.session_state['transcription_user']} »*")
+                st.caption(f"Ta réponse : « {st.session_state['transcription_user']} »")
                 if st.session_state["feedback_statut"] == "Validé":
-                    st.success(f"**{st.session_state['feedback_statut']} :** {st.session_state['feedback_texte']}")
+                    st.success(f"**{st.session_state['feedback_statut']}** — {st.session_state['feedback_texte']}")
                 else:
-                    st.warning(f"**{st.session_state['feedback_statut']} :** {st.session_state['feedback_texte']}")
+                    st.warning(f"**{st.session_state['feedback_statut']}** — {st.session_state['feedback_texte']}")
                 st.audio(
                     st.session_state["feedback_audio"],
                     format=st.session_state.get("feedback_mime", "audio/mp3"),
