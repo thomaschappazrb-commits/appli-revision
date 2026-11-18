@@ -12,9 +12,10 @@ from google import genai
 from groq import Groq
 from gtts import gTTS
 
-st.set_page_config(page_title="Révision IA", page_icon="🎧")
-st.title("🎧 Mon Appli de Révision IA")
-
+# Configure le titre qui sera lu par le téléphone pour l'installer automatiquement sous le nom "echo"
+st.set_page_config(page_title="echo", page_icon="logo.png")
+st.title("🗣️ echo")
+st.caption("Fais défiler ton cours, écoute et retiens en courant")
 
 def lire_secret(nom: str) -> str:
     """Lit une clé secrète côté serveur uniquement (jamais envoyée au navigateur)."""
