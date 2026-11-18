@@ -1,6 +1,6 @@
 streamlit
+pypdf
 google-genai
 groq
-pypdf
-gTTS
 edge-tts
+supabase
