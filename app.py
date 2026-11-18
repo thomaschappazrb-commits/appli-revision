@@ -16,7 +16,7 @@ from google.genai import types
 from groq import Groq
 
 st.set_page_config(
-    page_title="echo",
+    page_title="Echo",
     page_icon="logo.jpg",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -24,12 +24,26 @@ st.set_page_config(
 
 LOGO_URL = "https://raw.githubusercontent.com/thomaschappazrb-commits/appli-revision/main/logo.jpg"
 
-# Injection icône iOS/Android + habillage visuel moderne
+# Injection icône iOS/Android + suppression de " · Streamlit" dans l'onglet
 components.html(
     f"""
     <script>
     try {{
         const doc = window.top.document;
+        const fixerTitre = () => {{
+            if (doc.title !== "Echo") {{
+                doc.title = "Echo";
+            }}
+        }};
+        fixerTitre();
+        const baliseTitre = doc.querySelector("title");
+        if (baliseTitre) {{
+            new MutationObserver(fixerTitre).observe(baliseTitre, {{
+                childList: true,
+                characterData: true,
+                subtree: true
+            }});
+        }}
         doc.querySelectorAll("link[rel*='icon']").forEach(el => el.remove());
         ["apple-touch-icon", "apple-touch-icon-precomposed", "icon"].forEach(rel => {{
             const link = doc.createElement("link");
@@ -42,7 +56,6 @@ components.html(
     """,
     height=0,
 )
-
 st.markdown(
     """
     <style>
@@ -600,7 +613,7 @@ with col_hero:
         <div class="echo-hero">
             <img src="{LOGO_URL}" alt="echo">
             <div>
-                <p class="echo-title">echo</p>
+                <p class="echo-title">Echo</p>
                 <p class="echo-sub">Tes cours dans les oreilles, taillés pour courir</p>
             </div>
         </div>
