@@ -677,24 +677,37 @@ def construire_carte_cours(texte_complet: str, gemini_key: str, groq_key: str) -
 
 
 def generer_titre_episode(matiere: str, noms_fichiers: list[str], gemini_key: str, groq_key: str) -> tuple[str, str]:
+    noms_propres = [
+        re.sub(r"[_\-]+", " ", os.path.splitext(n)[0]).strip()
+        for n in noms_fichiers
+    ]
+    base_doc = " — ".join(noms_propres) if noms_propres else "Cours"
+
+    extrait_propre = re.sub(r"\$[^$]+\$", "", matiere[:4000])
+    extrait_propre = re.sub(r"[*_#`~\\{}]", "", extrait_propre)
+
     prompt = (
-        f"Donne un titre court, sobre et précis (3 à 6 mots maximum) qui résume le sujet principal de ces documents.\n"
-        f"Documents : {', '.join(noms_fichiers)}\n"
-        f"Contenu :\n{matiere[:8000]}\n\n"
-        f"Réponds UNIQUEMENT par le titre, sans guillemets, sans point final, sans préfixe."
+        f"Donne le thème général de ce cours en 2 à 5 mots simples en français (exemple : 'Physique des ultrasons', 'Équations de Bloch en IRM', 'Radioprotection et dosimétrie').\n"
+        f"Nom du fichier : {base_doc}\n"
+        f"Extrait :\n{extrait_propre[:2500]}\n\n"
+        f"Règles strictes : uniquement des lettres et espaces, aucun symbole, aucune formule, aucun guillemet, aucun point."
     )
     try:
-        titre_brut, _ = generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.3)
-        titre_propre = re.sub(r"[\"'«»\n\r]", "", titre_brut).strip(" .:-")
-        titre_propre = titre_propre[:70] if titre_propre else "Synthèse de cours"
+        titre_brut, _ = generer_texte_ia(prompt, gemini_key, groq_key, temperature=0.2)
+        titre_propre = re.sub(r"\$[^$]+\$", "", titre_brut)
+        titre_propre = re.sub(r"[^a-zA-ZÀ-ÿ0-9\s\-']", "", titre_propre).strip()
+        titre_propre = re.sub(r"\s+", " ", titre_propre)
+        if len(titre_propre) < 4 or len(titre_propre) > 55:
+            titre_propre = base_doc[:55]
+        else:
+            titre_propre = titre_propre[0].upper() + titre_propre[1:]
     except Exception:
-        titre_propre = "Synthèse de cours"
+        titre_propre = base_doc[:55] or "Synthèse de cours"
 
     sans_accents = unicodedata.normalize("NFKD", titre_propre).encode("ascii", "ignore").decode("ascii")
     slug = re.sub(r"[^a-zA-Z0-9]+", "_", sans_accents.lower()).strip("_")
-    slug = slug[:48] or "synthese"
+    slug = slug[:45] or "synthese"
     return titre_propre, f"echo_{slug}"
-
 
 def generer_script_podcast_long(
     matiere_cours: str,
