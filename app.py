@@ -978,6 +978,10 @@ with col_cfg:
                         client_sb.auth.sign_out()
                     except Exception:
                         pass
+                try:
+                    cookie_manager.delete("echo_rt")
+                except Exception:
+                    pass        
                 for k in ("sb_user", "sb_session", "biblio_audio_cache"):
                     st.session_state.pop(k, None)
                 st.session_state["mode_invite"] = False
@@ -1029,6 +1033,7 @@ if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state
                                 "access_token": res.session.access_token,
                                 "refresh_token": res.session.refresh_token,
                             }
+                            cookie_manager.set("echo_rt", res.session.refresh_token, max_age=30 * 24 * 3600)
                             st.rerun()
                     except Exception as e:
                         st.error(f"Identifiants invalides : {e}")
