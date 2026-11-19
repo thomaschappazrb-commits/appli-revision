@@ -17,6 +17,7 @@ from google import genai
 from google.genai import types
 from groq import Groq
 from supabase import create_client, Client
+import extra_streamlit_components as stx
 
 st.set_page_config(
     page_title="Echo",
@@ -217,7 +218,31 @@ def nettoyer_cle(cle: str) -> str:
 SUPABASE_URL = lire_secret("SUPABASE_URL").strip()
 SUPABASE_KEY = nettoyer_cle(lire_secret("SUPABASE_KEY"))
 SUPABASE_ACTIF = bool(SUPABASE_URL and SUPABASE_KEY)
+cookie_manager = stx.CookieManager(key="echo_cookies")
 
+
+def restaurer_session_cookie():
+    if not SUPABASE_ACTIF or "sb_user" in st.session_state:
+        return
+    refresh_tok = cookie_manager.get("echo_rt")
+    if not refresh_tok:
+        return
+    try:
+        sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+        res = sb.auth.refresh_session(refresh_tok)
+        if res.user and res.session:
+            st.session_state["sb_user"] = {"id": res.user.id, "email": res.user.email}
+            st.session_state["sb_session"] = {
+                "access_token": res.session.access_token,
+                "refresh_token": res.session.refresh_token,
+            }
+            cookie_manager.set("echo_rt", res.session.refresh_token, max_age=30 * 24 * 3600)
+            st.rerun()
+    except Exception:
+        try:
+            cookie_manager.delete("echo_rt")
+        except Exception:
+            pass
 
 def get_supabase() -> Client | None:
     if not SUPABASE_ACTIF:
@@ -970,6 +995,7 @@ with col_cfg:
 # ==========================================
 # ÉCRAN DE CONNEXION / INSCRIPTION ÉPURÉ
 # ==========================================
+restaurer_session_cookie()
 if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state["mode_invite"]:
     st.markdown(
         """
