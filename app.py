@@ -17,7 +17,6 @@ from google import genai
 from google.genai import types
 from groq import Groq
 from supabase import create_client, Client
-import extra_streamlit_components as stx
 
 st.set_page_config(
     page_title="Echo",
@@ -163,7 +162,6 @@ st.markdown(
         color: #F8FAFC !important;
         border: 1px solid rgba(148, 163, 184, 0.2) !important;
     }
-    /* Zone de dépôt épurée en français */
     [data-testid="stFileUploader"] section {
         background-color: #0F172A !important;
         border: 1px dashed rgba(148, 163, 184, 0.32) !important;
@@ -213,36 +211,89 @@ def nettoyer_cle(cle: str) -> str:
 
 
 # ==========================================
-# CONNEXION SUPABASE (AUTH + STOCKAGE)
+# CONNEXION SUPABASE & SESSION PERSISTANTE iOS
 # ==========================================
 SUPABASE_URL = lire_secret("SUPABASE_URL").strip()
 SUPABASE_KEY = nettoyer_cle(lire_secret("SUPABASE_KEY"))
 SUPABASE_ACTIF = bool(SUPABASE_URL and SUPABASE_KEY)
-cookie_manager = stx.CookieManager(key="echo_cookies")
 
 
-def restaurer_session_cookie():
-    if not SUPABASE_ACTIF or "sb_user" in st.session_state:
+def synchroniser_localstorage(token: str | None):
+    """Enregistre ou efface le jeton de session dans le localStorage Safari / iOS PWA."""
+    if token:
+        js = f"""
+        <script>
+        try {{
+            const w = window.top || window;
+            w.localStorage.setItem("echo_rt", "{token}");
+        }} catch (e) {{}}
+        </script>
+        """
+    else:
+        js = """
+        <script>
+        try {
+            const w = window.top || window;
+            w.localStorage.removeItem("echo_rt");
+        } catch (e) {}
+        </script>
+        """
+    components.html(js, height=0)
+
+
+def enregistrer_session_utilisateur(res):
+    st.session_state["sb_user"] = {"id": res.user.id, "email": res.user.email}
+    st.session_state["sb_session"] = {
+        "access_token": res.session.access_token,
+        "refresh_token": res.session.refresh_token,
+    }
+    st.session_state["rt_a_sauver"] = res.session.refresh_token
+    st.query_params["rt"] = res.session.refresh_token
+
+
+def restaurer_session_persistante():
+    if not SUPABASE_ACTIF:
         return
-    refresh_tok = cookie_manager.get("echo_rt")
-    if not refresh_tok:
+
+    # Écrit dans localStorage après une connexion ou un rafraîchissement
+    if "rt_a_sauver" in st.session_state:
+        synchroniser_localstorage(st.session_state.pop("rt_a_sauver"))
+    if st.session_state.pop("rt_a_effacer", False):
+        synchroniser_localstorage(None)
+
+    if "sb_user" in st.session_state:
         return
-    try:
-        sb = create_client(SUPABASE_URL, SUPABASE_KEY)
-        res = sb.auth.refresh_session(refresh_tok)
-        if res.user and res.session:
-            st.session_state["sb_user"] = {"id": res.user.id, "email": res.user.email}
-            st.session_state["sb_session"] = {
-                "access_token": res.session.access_token,
-                "refresh_token": res.session.refresh_token,
-            }
-            cookie_manager.set("echo_rt", res.session.refresh_token, max_age=30 * 24 * 3600)
-            st.rerun()
-    except Exception:
+
+    rt_url = st.query_params.get("rt", "")
+    if rt_url:
         try:
-            cookie_manager.delete("echo_rt")
+            sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+            res = sb.auth.refresh_session(rt_url)
+            if res.user and res.session:
+                enregistrer_session_utilisateur(res)
+                st.rerun()
         except Exception:
-            pass
+            st.query_params.pop("rt", None)
+            synchroniser_localstorage(None)
+    elif not st.session_state.get("mode_invite"):
+        # Si l'app iPhone s'ouvre sans paramètre ?rt=, on vérifie localStorage et on recharge une fois
+        components.html(
+            """
+            <script>
+            try {
+                const w = window.top || window;
+                const tok = w.localStorage.getItem("echo_rt");
+                const url = new URL(w.location.href);
+                if (tok && !url.searchParams.has("rt")) {
+                    url.searchParams.set("rt", tok);
+                    w.location.replace(url.toString());
+                }
+            } catch (e) {}
+            </script>
+            """,
+            height=0,
+        )
+
 
 def get_supabase() -> Client | None:
     if not SUPABASE_ACTIF:
@@ -734,6 +785,7 @@ def generer_titre_episode(matiere: str, noms_fichiers: list[str], gemini_key: st
     slug = slug[:45] or "synthese"
     return titre_propre, f"echo_{slug}"
 
+
 def generer_script_podcast_long(
     matiere_cours: str,
     duree_minutes: int,
@@ -940,6 +992,9 @@ for cle, val in [
 groq_key = nettoyer_cle(lire_secret("GROQ_API_KEY"))
 gemini_key = nettoyer_cle(lire_secret("GEMINI_API_KEY"))
 
+# Restauration automatique de la session (Safari / Écran d'accueil iPhone)
+restaurer_session_persistante()
+
 # ==========================================
 # EN-TÊTE SOBRE + COMPTE & AUDIO
 # ==========================================
@@ -978,10 +1033,8 @@ with col_cfg:
                         client_sb.auth.sign_out()
                     except Exception:
                         pass
-                try:
-                    cookie_manager.delete("echo_rt")
-                except Exception:
-                    pass        
+                st.query_params.pop("rt", None)
+                st.session_state["rt_a_effacer"] = True
                 for k in ("sb_user", "sb_session", "biblio_audio_cache"):
                     st.session_state.pop(k, None)
                 st.session_state["mode_invite"] = False
@@ -999,7 +1052,6 @@ with col_cfg:
 # ==========================================
 # ÉCRAN DE CONNEXION / INSCRIPTION ÉPURÉ
 # ==========================================
-restaurer_session_cookie()
 if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state["mode_invite"]:
     st.markdown(
         """
@@ -1028,12 +1080,7 @@ if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state
                         sb = create_client(SUPABASE_URL, SUPABASE_KEY)
                         res = sb.auth.sign_in_with_password({"email": email_in.strip(), "password": pass_in})
                         if res.user and res.session:
-                            st.session_state["sb_user"] = {"id": res.user.id, "email": res.user.email}
-                            st.session_state["sb_session"] = {
-                                "access_token": res.session.access_token,
-                                "refresh_token": res.session.refresh_token,
-                            }
-                            cookie_manager.set("echo_rt", res.session.refresh_token, max_age=30 * 24 * 3600)
+                            enregistrer_session_utilisateur(res)
                             st.rerun()
                     except Exception as e:
                         st.error(f"Identifiants invalides : {e}")
@@ -1050,11 +1097,7 @@ if SUPABASE_ACTIF and "sb_user" not in st.session_state and not st.session_state
                         sb = create_client(SUPABASE_URL, SUPABASE_KEY)
                         res = sb.auth.sign_up({"email": email_up.strip(), "password": pass_up})
                         if res.user and res.session:
-                            st.session_state["sb_user"] = {"id": res.user.id, "email": res.user.email}
-                            st.session_state["sb_session"] = {
-                                "access_token": res.session.access_token,
-                                "refresh_token": res.session.refresh_token,
-                            }
+                            enregistrer_session_utilisateur(res)
                             st.rerun()
                         else:
                             st.info("Compte créé. Connecte-toi dans l'onglet Connexion.")
