@@ -62,6 +62,11 @@ components.html(
 st.markdown(
     """
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
     #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] {
         display: none !important;
     }
@@ -69,125 +74,132 @@ st.markdown(
         background: transparent !important;
     }
     .block-container {
-        padding-top: 1.3rem !important;
+        padding-top: 1.2rem !important;
         padding-bottom: 3rem !important;
-        max-width: 680px !important;
+        max-width: 660px !important;
     }
     .echo-header {
         display: flex;
         align-items: center;
         gap: 14px;
-        padding: 12px 16px;
-        background-color: #0F172A;
-        border: 1px solid rgba(148, 163, 184, 0.16);
+        padding: 13px 16px;
+        background: linear-gradient(180deg, #131C31 0%, #0F172A 100%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
         margin-bottom: 16px;
     }
     .echo-header img {
-        width: 46px;
-        height: 46px;
+        width: 44px;
+        height: 44px;
         border-radius: 11px;
         object-fit: cover;
     }
     .echo-title {
-        font-size: 1.4rem;
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-size: 1.45rem;
         font-weight: 700;
         color: #F8FAFC;
         margin: 0;
-        line-height: 1.15;
-        letter-spacing: -0.02em;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
     }
     .echo-sub {
-        font-size: 0.84rem;
+        font-size: 0.82rem;
         color: #94A3B8;
-        margin: 2px 0 0 0;
+        margin: 3px 0 0 0;
     }
     .echo-panel {
-        background-color: #0F172A;
-        border: 1px solid rgba(148, 163, 184, 0.15);
+        background: linear-gradient(180deg, #11192E 0%, #0D1424 100%);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        border-left: 3px solid #0284C7;
         border-radius: 14px;
-        padding: 16px 18px;
-        margin: 8px 0 14px 0;
+        padding: 15px 18px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+        margin: 8px 0 12px 0;
     }
     .echo-panel-title {
-        font-size: 1.02rem;
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-size: 1.04rem;
         font-weight: 600;
         color: #F8FAFC;
         margin: 0 0 4px 0;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.015em;
     }
     .echo-panel-desc {
-        font-size: 0.86rem;
+        font-size: 0.84rem;
         color: #94A3B8;
         margin: 0;
         line-height: 1.45;
     }
     .echo-kicker {
-        font-size: 0.72rem;
-        font-weight: 600;
+        font-family: 'Space Grotesk', sans-serif !important;
+        font-size: 0.7rem;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.08em;
         color: #38BDF8;
-        margin-bottom: 4px;
+        margin-bottom: 5px;
     }
-    .stButton > button {
+    audio {
+        width: 100%;
+        height: 40px;
+        border-radius: 10px;
+        filter: invert(0.92) hue-rotate(180deg) contrast(0.95);
+        opacity: 0.92;
+        margin: 6px 0 10px 0;
+    }
+    .stButton > button, .stDownloadButton > button {
         width: 100%;
         border-radius: 11px !important;
-        padding: 0.56rem 0.9rem !important;
+        padding: 0.58rem 0.9rem !important;
         font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        background-color: #1E293B !important;
-        color: #F8FAFC !important;
-        border: 1px solid rgba(148, 163, 184, 0.2) !important;
-        transition: background-color 0.15s ease !important;
+        font-size: 0.88rem !important;
+        background-color: #162036 !important;
+        color: #F1F5F9 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        transition: all 0.15s ease !important;
     }
-    .stButton > button:hover {
-        background-color: #334155 !important;
+    .stButton > button:hover, .stDownloadButton > button:hover {
+        background-color: #1E2B47 !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
     }
     .stButton > button[kind="primary"] {
         background-color: #0284C7 !important;
         color: #FFFFFF !important;
-        border: 1px solid #0284C7 !important;
+        border: 1px solid #0EA5E9 !important;
+        box-shadow: 0 2px 10px rgba(2, 132, 199, 0.3) !important;
     }
     .stButton > button[kind="primary"]:hover {
         background-color: #0369A1 !important;
     }
-    .stDownloadButton > button {
-        width: 100%;
-        border-radius: 11px !important;
-        padding: 0.56rem 0.9rem !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        background-color: #1E293B !important;
-        color: #F8FAFC !important;
-        border: 1px solid rgba(148, 163, 184, 0.2) !important;
-    }
     [data-testid="stFileUploader"] section {
         background-color: #0F172A !important;
-        border: 1px dashed rgba(148, 163, 184, 0.32) !important;
+        border: 1px dashed rgba(148, 163, 184, 0.28) !important;
         border-radius: 14px !important;
         padding: 14px 16px !important;
     }
-    [data-testid="stFileUploaderDropzoneInstructions"] > div > span {
+    [data-testid="stFileUploaderDropzoneInstructions"] > div > span,
+    [data-testid="stFileUploaderDropzoneInstructions"] small {
         display: none !important;
     }
     [data-testid="stFileUploaderDropzoneInstructions"] > div::before {
         content: "Glisser un ou plusieurs fichiers PDF ou TXT";
-        font-size: 0.88rem;
+        font-size: 0.86rem;
         color: #CBD5E1;
         display: block;
     }
-    [data-testid="stFileUploaderDropzoneInstructions"] small {
-        display: none !important;
-    }
     .stTabs [data-baseweb="tab-list"] {
         gap: 4px;
-        background-color: #0F172A;
+        background-color: #0B1120;
         padding: 4px;
         border-radius: 12px;
-        border: 1px solid rgba(148, 163, 184, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .stTabs [data-baseweb="tab"] {
+        font-family: 'Space Grotesk', sans-serif !important;
         border-radius: 9px !important;
         padding: 7px 14px !important;
         font-weight: 600 !important;
@@ -255,7 +267,6 @@ def restaurer_session_persistante():
     if not SUPABASE_ACTIF:
         return
 
-    # Écrit dans localStorage après une connexion ou un rafraîchissement
     if "rt_a_sauver" in st.session_state:
         synchroniser_localstorage(st.session_state.pop("rt_a_sauver"))
     if st.session_state.pop("rt_a_effacer", False):
@@ -276,7 +287,6 @@ def restaurer_session_persistante():
             st.query_params.pop("rt", None)
             synchroniser_localstorage(None)
     elif not st.session_state.get("mode_invite"):
-        # Si l'app iPhone s'ouvre sans paramètre ?rt=, on vérifie localStorage et on recharge une fois
         components.html(
             """
             <script>
